@@ -1,0 +1,18 @@
+---
+description: Architectural constraints for writing Oracle Database connections and feature modules
+globs: "**/*.js, **/*.ts, **/*.jsx, **/*.tsx"
+alwaysApply: true
+---
+# Oracle Database Development Specifications
+
+## Core Framework Constraints
+- You MUST utilize `oracledb` in native **Thin Mode** (Pure JavaScript driver).
+- Do NOT import legacy Thick Mode dependencies or require the user to install Oracle Instant Client software layers.
+- All database connections MUST use a strict `try...catch...finally` block architecture to guarantee that `connection.close()` is explicitly executed within the `finally` block to safely release connection pooling resources.
+
+## Connection Reference Mapping
+- Prefer the Oracle SQL Developer VS Code connection **Demo DB 26ai System** from `~/.dbtools/connections/*/dbtools.properties` (via `lib/sqldeveloper-connection.js`).
+- Supply only `DB_PASSWORD` in `.env` (passwords live in SQL Developer `credentials.sso` wallet). Fallback: `DB_USE_ENV_ONLY=true` with `DB_USER`, `DB_PASSWORD`, and `DB_CONNECTION_STRING`.
+- Port Configuration: Target OCI Base DB standard endpoints resolve via port `1521` or `1522` utilizing TCP/TCPS protocols.
+
+

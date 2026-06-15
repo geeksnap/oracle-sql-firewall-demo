@@ -1,0 +1,42 @@
+{
+  "name": "aegis-vault",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Oracle SQL Firewall SOC Defense Dashboard",
+  "scripts": {
+    "predev": "node scripts/bump-build.mjs",
+    "dev": "tsx server.ts",
+    "prebuild": "node scripts/bump-build.mjs",
+    "build": "next build",
+    "start": "NODE_ENV=production tsx server.ts",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@react-three/drei": "^10.0.6",
+    "@react-three/fiber": "^9.1.2",
+    "clsx": "^2.1.1",
+    "dotenv": "^16.5.0",
+    "framer-motion": "^12.9.2",
+    "next": "^15.3.2",
+    "oracledb": "^6.8.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
+    "tailwind-merge": "^3.2.0",
+    "three": "^0.175.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.5",
+    "@types/node": "^22.15.3",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "@types/three": "^0.175.0",
+    "tailwindcss": "^4.1.5",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  },
+  "allowScripts": {
+    "oracledb@6.10.0": true
+  }
+}

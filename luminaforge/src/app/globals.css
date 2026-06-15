@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+:root {
+  --navy: #0f172a;
+  --navy-mid: #1e293b;
+  --navy-light: #334155;
+  --gold: #f4c95d;
+  --gold-dim: #c9a43a;
+  --cyan: #22d3ee;
+  --cyan-dim: #0891b2;
+  --text-primary: #f1f5f9;
+  --text-muted: #94a3b8;
+  --glass: rgba(30, 41, 59, 0.72);
+  --glass-border: rgba(244, 201, 93, 0.18);
+  --glass-border-cyan: rgba(34, 211, 238, 0.2);
+  --danger: #f43f5e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--navy);
+  color: var(--text-primary);
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+/* Subtle gold grain overlay */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    135deg,
+    rgba(244, 201, 93, 0.015) 0px,
+    rgba(244, 201, 93, 0.015) 1px,
+    transparent 1px,
+    transparent 6px
+  );
+  z-index: 50;
+}
+
+.glass-panel {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(16px);
+  box-shadow:
+    0 0 32px rgba(244, 201, 93, 0.06),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.glass-panel-cyan {
+  background: var(--glass);
+  border: 1px solid var(--glass-border-cyan);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 0 24px rgba(34, 211, 238, 0.08);
+}
+
+.gold-text {
+  color: var(--gold);
+  text-shadow: 0 0 16px rgba(244, 201, 93, 0.5);
+}
+
+.gold-gradient {
+  background: linear-gradient(90deg, #f4c95d, #e8a520, #f4c95d);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.cyan-text {
+  color: var(--cyan);
+  text-shadow: 0 0 12px rgba(34, 211, 238, 0.55);
+}
+
+.gold-btn {
+  background: linear-gradient(135deg, #f4c95d, #c9a43a);
+  color: #0f172a;
+  font-weight: 700;
+  border: none;
+  transition: all 0.2s;
+}
+
+.gold-btn:hover {
+  background: linear-gradient(135deg, #fde68a, #f4c95d);
+  box-shadow: 0 0 20px rgba(244, 201, 93, 0.4);
+}
+
+.attack-pulse {
+  animation: attackPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes attackPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.4); }
+  50% { box-shadow: 0 0 24px 6px rgba(244, 63, 94, 0.3); }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--navy); }
+::-webkit-scrollbar-thumb { background: var(--navy-light); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gold-dim); }

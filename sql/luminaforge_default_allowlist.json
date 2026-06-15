@@ -1,0 +1,8 @@
+{
+  "_readme": "Demo Control init-default-policy uses luminaforge.aegis_demo_bootstrap_benign + GENERATE_ALLOW_LIST (no static import). To export a portable JSON allow-list for IMPORT_ALLOW_LIST, run scripts/export_luminaforge_default_allowlist.sql as SYS after a trained allow-list exists.",
+  "username": "LUMINAFORGE",
+  "status": "DISABLED",
+  "top_level_only": true,
+  "enforce": "ENFORCE_ALL",
+  "block": false
+}

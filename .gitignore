@@ -1,0 +1,44 @@
+# Dependencies & build output
+node_modules/
+.next/
+out/
+dist/
+build/
+coverage/
+.turbo/
+
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.sso
+**/credentials.sso
+
+# Logs & runtime
+logs/
+.pids/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS & editor
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+*.swo
+.vscode/settings.json
+.vscode/launch.json
+
+# Oracle / local tooling (optional wallet paths)
+.wallets/
+
+# Cursor / local agent (do not publish session state)
+.cursor/projects/
+
+# Local-only ops notes (may contain hostnames, credentials, internal URLs)
+#Document/

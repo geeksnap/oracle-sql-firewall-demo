@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+:root {
+  --bg-hq: #0a0a0f;
+  --neon-cyan: #00f9ff;
+  --neon-magenta: #ff00aa;
+  --safe-green: #00ff9f;
+  --alert-red: #ff2d55;
+  --alert-yellow: #fbbf24;
+  --glass: rgba(12, 18, 32, 0.72);
+  --glass-border: rgba(0, 249, 255, 0.22);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bg-hq);
+  color: #e8f4ff;
+  font-family:
+    "Segoe UI",
+    system-ui,
+    -apple-system,
+    sans-serif;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 249, 255, 0.03) 0px,
+    rgba(0, 249, 255, 0.03) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+  z-index: 50;
+}
+
+.glass-panel {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(14px);
+  box-shadow:
+    0 0 24px rgba(0, 249, 255, 0.08),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.neon-text-cyan {
+  color: var(--neon-cyan);
+  text-shadow: 0 0 12px rgba(0, 249, 255, 0.65);
+}
+
+.neon-text-magenta {
+  color: var(--neon-magenta);
+  text-shadow: 0 0 12px rgba(255, 0, 170, 0.55);
+}
+
+.alert-pulse {
+  animation: alertPulse 1.2s ease-in-out infinite;
+}
+
+.alert-flash {
+  animation: alertFlash 0.45s ease-in-out infinite;
+  border-color: rgba(255, 45, 85, 0.85);
+}
+
+.alert-warning-pulse {
+  animation: alertWarningPulse 1.2s ease-in-out infinite;
+  border-color: rgba(251, 191, 36, 0.65);
+}
+
+@keyframes alertPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 45, 85, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 24px 6px rgba(255, 45, 85, 0.35);
+  }
+}
+
+@keyframes alertFlash {
+  0%,
+  100% {
+    box-shadow: 0 0 8px 2px rgba(255, 45, 85, 0.9);
+  }
+  50% {
+    box-shadow: 0 0 40px 12px rgba(255, 45, 85, 0.75);
+  }
+}
+
+@keyframes alertWarningPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 24px 6px rgba(251, 191, 36, 0.4);
+  }
+}

@@ -1,0 +1,21 @@
+---
+description: Enforce OpenSpec standard + anti-vibe-coding rules for all work in this project
+alwaysApply: true
+---
+
+# OpenSpec Compliance (Single Source of Truth)
+
+You MUST follow the OpenSpec standard exactly as defined in each application's canonical spec file:
+- `aegis-vault/SPEC-aegis.md`
+- `luminaforge/SPEC-luminaforge.md`
+
+## Workflow for ANY new application or feature (no vibe coding):
+1. First create/update proposal.md + app spec deltas (what is changing).
+2. Generate tasks.md breakdown.
+3. Get human review of the spec.
+4. ONLY THEN implement code using /openspec-apply style or explicit spec references.
+5. Archive completed specs.
+
+Never generate code directly from vague natural-language requests. Always ground every response in the current app spec files (`SPEC-aegis.md`, `SPEC-luminaforge.md`).
+
+Reference the two example applications in the subfolders as templates for structure and Oracle DB usage.

@@ -1,0 +1,19 @@
+region         = "ap-singapore-1"
+compartment_id = "ocid1.compartment.oc1..aaaaaaaaexample"
+project_prefix = "sqlfw-demo"
+
+ssh_public_key = "ssh-ed25519 AAAA... your-key"
+
+# Private repo — embed a read-only token in URL (sensitive; do not commit real token)
+# github_repo_url = "https://<GITHUB_TOKEN>@github.com/geeksnap/oracle-sql-firewall-demo.git"
+github_repo_url  = "https://github.com/geeksnap/oracle-sql-firewall-demo.git"
+github_branch    = "main"
+
+# Restrict presenter access — set in DB stack only (controls compute SSH + :3000/:3001)
+# See terraform/db/terraform.tfvars → allow_ssh_cidr
+
+# --- REQUIRED for OCI Resource Manager (Console) — DB stack OCID after DB Apply succeeds
+db_stack_id = "ocid1.ormstack.oc1..aaaaaaaaexample"
+
+# --- Local CLI only — leave db_stack_id unset and use path after `terraform apply` in ../db
+# db_state_path = "../db/terraform.tfstate"

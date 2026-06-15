@@ -1,0 +1,164 @@
+#cloud-config
+package_update: true
+packages:
+  - git
+  - curl
+  - jq
+
+write_files:
+  - path: /root/sqlfw-bootstrap.env
+    permissions: "0600"
+    content: |
+      export DB_CONNECT_STRING="${db_connect_string}"
+      export DB_SYS_PASSWORD="$(echo '${sys_password_b64}' | base64 -d)"
+      export DB_PDB_NAME="${db_pdb_name}"
+      export APP_DB_PASSWORD="$(echo '${app_db_password_b64}' | base64 -d)"
+      export GITHUB_REPO="${github_repo_url}"
+      export GITHUB_BRANCH="${github_branch}"
+      export APP_USER="${app_user}"
+      export ORACLE_CLIENT_LIBDIR="/usr/lib/oracle/19.31/client64/lib"
+      export LD_LIBRARY_PATH="/usr/lib/oracle/19.31/client64/lib"
+
+  - path: /usr/local/bin/sqlfw-install-apps.sh
+    permissions: "0755"
+    content: |
+      #!/usr/bin/env bash
+      set -euo pipefail
+      source /root/sqlfw-bootstrap.env
+
+      id -u "$APP_USER" &>/dev/null || useradd -m -s /bin/bash "$APP_USER"
+      install -d -o "$APP_USER" -g "$APP_USER" /home/$APP_USER/apps
+
+      # Oracle Linux firewalld blocks :3000/:3001 even when OCI security list allows them
+      if systemctl is-active firewalld &>/dev/null; then
+        firewall-cmd --permanent --add-port=3000/tcp
+        firewall-cmd --permanent --add-port=3001/tcp
+        firewall-cmd --reload
+      fi
+
+      # OCI Base DB requires node-oracledb thick mode (Instant Client) — thin mode fails NJS-533
+      ORACLE_IC_LIB="/usr/lib/oracle/19.31/client64/lib"
+      dnf install -y oracle-instantclient-release-el9
+      dnf install -y oracle-instantclient19.31-basic
+      echo "$ORACLE_IC_LIB" > /etc/ld.so.conf.d/oracle-instantclient.conf
+      ldconfig
+
+      curl -fsSL https://rpm.nodesource.com/setup_22.x | bash -
+      dnf install -y nodejs
+
+      REPO_DIR="/home/$APP_USER/apps/oracle-sql-firewall-demo"
+      if [ ! -d "$REPO_DIR/.git" ]; then
+        sudo -u "$APP_USER" git clone --branch "$GITHUB_BRANCH" "$GITHUB_REPO" "$REPO_DIR"
+      else
+        sudo -u "$APP_USER" git -C "$REPO_DIR" fetch origin "$GITHUB_BRANCH"
+        sudo -u "$APP_USER" git -C "$REPO_DIR" checkout "$GITHUB_BRANCH"
+        sudo -u "$APP_USER" git -C "$REPO_DIR" pull --ff-only origin "$GITHUB_BRANCH" || true
+      fi
+
+      echo "Waiting for Oracle listener on $DB_CONNECT_STRING ..."
+      HOST="$${DB_CONNECT_STRING%%:*}"
+      READY=false
+      for i in $(seq 1 180); do
+        if timeout 3 bash -c "echo >/dev/tcp/$HOST/1521" 2>/dev/null; then
+          echo "DB port 1521 open"
+          READY=true
+          break
+        fi
+        sleep 10
+      done
+      if [ "$READY" != "true" ]; then
+        echo "ERROR: DB listener not reachable on $HOST:1521 after 30 min"
+        exit 1
+      fi
+
+      cd "$REPO_DIR/aegis-vault" && sudo -u "$APP_USER" env LD_LIBRARY_PATH="$ORACLE_IC_LIB" ORACLE_CLIENT_LIBDIR="$ORACLE_IC_LIB" npm ci
+      cd "$REPO_DIR/luminaforge" && sudo -u "$APP_USER" env LD_LIBRARY_PATH="$ORACLE_IC_LIB" ORACLE_CLIENT_LIBDIR="$ORACLE_IC_LIB" npm ci
+      cd "$REPO_DIR/aegis-vault" && sudo -u "$APP_USER" env LD_LIBRARY_PATH="$ORACLE_IC_LIB" ORACLE_CLIENT_LIBDIR="$ORACLE_IC_LIB" npm run build
+      cd "$REPO_DIR/luminaforge" && sudo -u "$APP_USER" env LD_LIBRARY_PATH="$ORACLE_IC_LIB" ORACLE_CLIENT_LIBDIR="$ORACLE_IC_LIB" npm run build
+
+      printf '%s\n' \
+        "DB_USER=AEGIS_APP" \
+        "DB_PASSWORD=$APP_DB_PASSWORD" \
+        "DB_CONNECTION_STRING=$DB_CONNECT_STRING" \
+        "DB_CONTAINER=$DB_PDB_NAME" \
+        "PORT=3000" \
+        "POLL_INTERVAL_MS=3000" \
+        "LUMINAFORGE_BASE_URL=http://127.0.0.1:3001" \
+        > "$REPO_DIR/aegis-vault/.env"
+
+      printf '%s\n' \
+        "DB_USER=luminaforge" \
+        "DB_PASSWORD=$APP_DB_PASSWORD" \
+        "DB_CONNECTION_STRING=$DB_CONNECT_STRING" \
+        "DB_CONTAINER=$DB_PDB_NAME" \
+        "PORT=3001" \
+        > "$REPO_DIR/luminaforge/.env"
+
+      chown "$APP_USER:$APP_USER" "$REPO_DIR/aegis-vault/.env" "$REPO_DIR/luminaforge/.env"
+      chmod 600 "$REPO_DIR/aegis-vault/.env" "$REPO_DIR/luminaforge/.env"
+
+      echo "Bootstrapping database schema..."
+      cd "$REPO_DIR"
+      sudo -u "$APP_USER" env \
+        ORACLE_CLIENT_LIBDIR="$ORACLE_IC_LIB" \
+        LD_LIBRARY_PATH="$ORACLE_IC_LIB" \
+        DB_CONNECT_STRING="$DB_CONNECT_STRING" \
+        DB_SYS_PASSWORD="$DB_SYS_PASSWORD" \
+        DB_PDB_NAME="$DB_PDB_NAME" \
+        APP_DB_PASSWORD="$APP_DB_PASSWORD" \
+        node scripts/oci-bootstrap-database.mjs
+
+      systemctl daemon-reload
+      systemctl enable luminaforge.service aegis-vault.service
+      systemctl start luminaforge.service aegis-vault.service
+      systemctl is-active luminaforge.service aegis-vault.service
+      echo "[SUCCESS] Apps + DB schema ready"
+
+  - path: /etc/systemd/system/aegis-vault.service
+    permissions: "0644"
+    content: |
+      [Unit]
+      Description=Aegis Vault SQL Firewall SOC
+      After=network-online.target
+      Wants=network-online.target
+
+      [Service]
+      Type=simple
+      User=${app_user}
+      WorkingDirectory=/home/${app_user}/apps/oracle-sql-firewall-demo/aegis-vault
+      Environment=ORACLE_CLIENT_LIBDIR=/usr/lib/oracle/19.31/client64/lib
+      Environment=LD_LIBRARY_PATH=/usr/lib/oracle/19.31/client64/lib
+      Environment=NODE_ENV=production
+      ExecStart=/usr/bin/npm start
+      Restart=on-failure
+      RestartSec=5
+
+      [Install]
+      WantedBy=multi-user.target
+
+  - path: /etc/systemd/system/luminaforge.service
+    permissions: "0644"
+    content: |
+      [Unit]
+      Description=LuminaForge SQL Firewall Demo App
+      After=network-online.target
+      Wants=network-online.target
+
+      [Service]
+      Type=simple
+      User=${app_user}
+      WorkingDirectory=/home/${app_user}/apps/oracle-sql-firewall-demo/luminaforge
+      Environment=ORACLE_CLIENT_LIBDIR=/usr/lib/oracle/19.31/client64/lib
+      Environment=LD_LIBRARY_PATH=/usr/lib/oracle/19.31/client64/lib
+      Environment=NODE_ENV=production
+      ExecStart=/usr/bin/npm start
+      Restart=on-failure
+      RestartSec=5
+
+      [Install]
+      WantedBy=multi-user.target
+
+runcmd:
+  - [ bash, -lc, "/usr/local/bin/sqlfw-install-apps.sh >> /var/log/sqlfw-install.log 2>&1" ]
+
+final_message: "SQL Firewall demo compute bootstrap finished. Check /var/log/sqlfw-install.log"

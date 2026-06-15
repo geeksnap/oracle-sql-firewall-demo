@@ -1,0 +1,19 @@
+region            = "ap-tokyo-1"
+compartment_id    = "ocid1.compartment.oc1..aaaaaaaaexample"
+project_prefix    = "sqlfw-demo"
+
+# Paste contents of ~/.ssh/id_ed25519.pub
+ssh_public_key    = "ssh-ed25519 AAAA... your-key"
+
+# Restrict to your office / VPN CIDR in production; 0.0.0.0/0 opens SSH + app ports globally
+# Changing this requires: DB stack Plan → Apply (Variables alone is not enough)
+allow_ssh_cidr    = "0.0.0.0/0"
+
+# ap-tokyo-1 26ai
+db_home_version   = "26.0.0.0.0"
+
+# Hardcoded OCI-compliant demo passwords (defaults in variables.tf)
+sys_password      = "DbAdm12_Ab-cdXy"
+app_db_password   = "AppDb34_Cd-efGh"
+
+pdb_name          = "SQLFWPDB1"
