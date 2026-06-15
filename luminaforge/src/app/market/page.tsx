@@ -5,6 +5,7 @@ import { createSingleFlight } from "@/lib/single-flight";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/GlassCard";
 import { columnPayloadForTable } from "@/lib/market-demo-payloads";
+import { wafMirrorUrl } from "@/lib/waf-query-mirror";
 
 interface LuxItem {
   ID?: number; id?: number;
@@ -84,7 +85,7 @@ export default function MarketExplorerPage() {
       setLoading(true);
       setSearched(true);
       try {
-        const res = await fetch("/api/market/search", {
+        const res = await fetch(wafMirrorUrl("/api/market/search", { q: query }), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ q: query }),

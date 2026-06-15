@@ -4,6 +4,7 @@ import { useState, useRef, useMemo } from "react";
 import { createSingleFlight } from "@/lib/single-flight";
 import { useRouter } from "next/navigation";
 import { clsx } from "clsx";
+import { wafMirrorUrl } from "@/lib/waf-query-mirror";
 
 interface SearchResult {
   id?: number;    ID?: number;
@@ -28,7 +29,7 @@ export function UniversalSearchBar() {
     const ran = await runSearch(async () => {
       setLoading(true);
       try {
-        const res = await fetch("/api/market/search", {
+        const res = await fetch(wafMirrorUrl("/api/market/search", { q }), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ q }),

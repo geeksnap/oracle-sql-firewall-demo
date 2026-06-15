@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { createSingleFlight } from "@/lib/single-flight";
 import { motion, AnimatePresence } from "framer-motion";
 import { GlassCard } from "./GlassCard";
+import { wafMirrorUrl } from "@/lib/waf-query-mirror";
 
 interface Props {
   onResult: (result: { status: string; stmts?: number } | null, err: string | null) => void;
@@ -25,7 +26,7 @@ export function BulkActionPanel({ onResult }: Props) {
     const ran = await runExecute(async () => {
       setLoading(true);
       try {
-        const res = await fetch("/api/bulk/execute", {
+        const res = await fetch(wafMirrorUrl("/api/bulk/execute", { note }), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ note }),

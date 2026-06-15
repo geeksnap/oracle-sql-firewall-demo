@@ -1,0 +1,35 @@
+{
+  "bodyInspectionSizeLimitExceededActionName": "Block SQLi 403",
+  "bodyInspectionSizeLimitInBytes": 8192,
+  "rules": [
+    {
+      "actionName": "Block SQLi 403",
+      "isBodyInspectionEnabled": true,
+      "name": "block-sqli-luminaforge",
+      "protectionCapabilities": [
+        {
+          "actionName": "Pre-configured Check Action",
+          "collaborativeActionThreshold": 1,
+          "key": "9420000",
+          "version": 2
+        },
+        {
+          "actionName": "Pre-configured Check Action",
+          "key": "942361",
+          "version": 1
+        },
+        {
+          "actionName": "Pre-configured Check Action",
+          "key": "942340",
+          "version": 2
+        },
+        {
+          "actionName": "Pre-configured Check Action",
+          "key": "942490",
+          "version": 1
+        }
+      ],
+      "type": "PROTECTION"
+    }
+  ]
+}

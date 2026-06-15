@@ -737,10 +737,21 @@ sqlplus "sys/<sys_password>@<db_private_ip>:1521/<pdb_service_name> as sysdba"
 
 ### Application access (presenter URLs)
 
-| Application | Port | URL | Terraform output |
-|-------------|------|-----|------------------|
+| Application | Port | URL | Notes |
+|-------------|------|-----|--------|
 | **Aegis Vault** (SOC dashboard) | **3000** | `http://<compute_public_ip>:3000` | `aegis_vault_url` |
-| **LuminaForge** (demo / attacks) | **3001** | `http://<compute_public_ip>:3001` | `luminaforge_url` |
+| **LuminaForge** (direct / bypass WAF) | **3001** | `http://<compute_public_ip>:3001` | `luminaforge_url` |
+| **LuminaForge via WAF** | **80** | `http://<lb_public_ip>/` | Load Balancer `sqlfw-demo-lb` + WAF `demo-wap-firewall` |
+| **Compute :80 shortcut** | **80** | `http://<compute_public_ip>/` | Redirects to LB (after `scripts/setup-waf-port80-redirect.sh`) |
+
+**WAF path:** Internet → **LB :80** (`sqlfw-demo-waf-policy`) → backend **`<compute_private_ip>:3001`**. Use the LB reserved public IP, not the compute IP on port 80 (LuminaForge does not listen on :80).
+
+Backend set must register the compute **private** IP (e.g. `10.40.0.x:3001`), not the public IP. Security list must allow **`compute_subnet_cidr` → TCP 3001** for LB health checks (in `terraform/db/main.tf`).
+
+```bash
+# One-time on compute VM (set WAF_LB_URL from LB → Reserved public IP)
+WAF_LB_URL=http://<lb_public_ip> sudo -E bash scripts/setup-waf-port80-redirect.sh
+```
 
 **Internal (on compute VM):**
 
@@ -758,7 +769,9 @@ sqlplus "sys/<sys_password>@<db_private_ip>:1521/<pdb_service_name> as sysdba"
 | **22** | TCP | `allow_ssh_cidr` → Compute / DB | SSH admin |
 | **1521** | TCP | Compute subnet → DB subnet | Oracle listener |
 | **3000** | TCP | `allow_ssh_cidr` → Compute | Aegis Vault |
-| **3001** | TCP | `allow_ssh_cidr` → Compute | LuminaForge |
+| **3001** | TCP | `allow_ssh_cidr` → Compute | LuminaForge (direct bypass) |
+| **3001** | TCP | `compute_subnet_cidr` → Compute | Load Balancer → LuminaForge backend |
+| **80** | TCP | `0.0.0.0/0` → Compute subnet | LB listener + optional VM redirect |
 
 ---
 

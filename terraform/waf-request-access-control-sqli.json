@@ -1,0 +1,33 @@
+{
+  "defaultActionName": "Pre-configured Allow Action",
+  "rules": [
+    {
+      "actionName": "Block SQLi 403",
+      "condition": "i_contains(http.request.url.query, 'UNION') || i_contains(http.request.url.query, 'user_tables') || i_contains(http.request.url.query, 'user_tab_columns')",
+      "conditionLanguage": "JMESPATH",
+      "name": "block-sqli-attack-1-3-union-recon",
+      "type": "ACCESS_CONTROL"
+    },
+    {
+      "actionName": "Block SQLi 403",
+      "condition": "i_contains(http.request.url.query, '%27+OR+') || i_contains(http.request.url.query, '%27%20OR%20')",
+      "conditionLanguage": "JMESPATH",
+      "name": "block-sqli-attack-1-2-auth-bypass",
+      "type": "ACCESS_CONTROL"
+    },
+    {
+      "actionName": "Block SQLi 403",
+      "condition": "i_contains(http.request.url.query, 'user_id')",
+      "conditionLanguage": "JMESPATH",
+      "name": "block-sqli-attack-2-exfiltration",
+      "type": "ACCESS_CONTROL"
+    },
+    {
+      "actionName": "Block SQLi 403",
+      "condition": "i_contains(http.request.url.query, 'UPDATE') || i_contains(http.request.url.query, '%3B+UPDATE') || i_contains(http.request.url.query, '%3B%20UPDATE')",
+      "conditionLanguage": "JMESPATH",
+      "name": "block-sqli-attack-4-stacked",
+      "type": "ACCESS_CONTROL"
+    }
+  ]
+}

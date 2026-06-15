@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { clsx } from "clsx";
 import { createSingleFlight } from "@/lib/single-flight";
 import { GlassCard } from "./GlassCard";
+import { wafMirrorUrl } from "@/lib/waf-query-mirror";
 
 export interface TxRow {
   ID?: number;
@@ -57,7 +58,7 @@ export function TransactionHistoryLookup({ onResults }: Props) {
     const ran = await runFilter(async () => {
       setLoading(true);
       try {
-        const res = await fetch("/api/transactions/filter", {
+        const res = await fetch(wafMirrorUrl("/api/transactions/filter", { ref }), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ref }),

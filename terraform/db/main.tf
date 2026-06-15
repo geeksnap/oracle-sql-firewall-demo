@@ -152,8 +152,28 @@ resource "oci_core_security_list" "compute_sl" {
 
   ingress_security_rules {
     protocol    = "6"
-    description = "LuminaForge"
+    description = "LuminaForge direct (demo bypass WAF)"
     source      = var.allow_ssh_cidr
+    tcp_options {
+      min = 3001
+      max = 3001
+    }
+  }
+
+  ingress_security_rules {
+    protocol    = "6"
+    description = "Load Balancer listener (WAF entry port 80)"
+    source      = "0.0.0.0/0"
+    tcp_options {
+      min = 80
+      max = 80
+    }
+  }
+
+  ingress_security_rules {
+    protocol    = "6"
+    description = "Load Balancer to LuminaForge backend (health check + forward)"
+    source      = var.compute_subnet_cidr
     tcp_options {
       min = 3001
       max = 3001

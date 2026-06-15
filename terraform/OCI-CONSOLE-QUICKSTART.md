@@ -375,7 +375,46 @@ Expect: `[SUCCESS] Apps + DB schema ready`, both services `active`, HTTP **200**
 | App | URL | What you should see |
 |-----|-----|---------------------|
 | **Aegis Vault** | `http://<compute_public_ip>:3000` | SOC dashboard, sidebar (Dashboard, Demo Control, …) |
-| **LuminaForge** | `http://<compute_public_ip>:3001` | Demo fintech UI, nav tabs |
+| **LuminaForge** (direct bypass) | `http://<compute_public_ip>:3001` | Demo fintech UI, nav tabs |
+| **LuminaForge via WAF** | `http://<lb_public_ip>/` | WAF `demo-wap-firewall` → LB `sqlfw-demo-lb` → backend `:3001` |
+| **Compute :80 shortcut** | `http://<compute_public_ip>/` | Redirects to LB (run `scripts/setup-waf-port80-redirect.sh` on VM) |
+
+**WAF troubleshooting:** LuminaForge does **not** listen on port 80 on the compute VM. Backend set must use the compute **private** IP (`10.40.0.x:3001`). DB stack security list must allow **`compute_subnet_cidr` → TCP 3001** for LB health checks.
+
+### 5B-waf — OCI WAP policy (`sqlfw-demo-waf-policy`)
+
+| Resource | Name |
+|----------|------|
+| WAF policy | `sqlfw-demo-waf-policy` |
+| WAF attachment | `demo-wap-firewall` → Load Balancer `sqlfw-demo-lb` |
+| Block action | `Block SQLi 403` (HTTP 403 JSON) |
+
+**Traffic:** Internet → **LB :80** (WAF) → compute **private IP :3001**. LuminaForge mirrors attack fields into the URL query string (`waf-query-mirror.ts`) so WAF access-control rules can inspect POST bodies.
+
+Policy JSON artifacts (apply with OCI CLI after creating the `Block SQLi 403` action in Console or API):
+
+- `terraform/waf-request-access-control-sqli.json` — blocks all 4 demo SQLi patterns in the query string
+- `terraform/waf-request-protection-sqli.json` — request protection rule `block-sqli-luminaforge` (body inspection + SQLi capabilities)
+
+```bash
+export SUPPRESS_LABEL_WARNING=True
+WAF_POLICY=<web_app_firewall_policy_ocid>
+ETAG=$(oci waf web-app-firewall-policy get --web-app-firewall-policy-id "$WAF_POLICY" --query 'etag' --raw-output)
+
+oci waf web-app-firewall-policy update \
+  --web-app-firewall-policy-id "$WAF_POLICY" \
+  --request-access-control file://terraform/waf-request-access-control-sqli.json \
+  --request-protection file://terraform/waf-request-protection-sqli.json \
+  --if-match "$ETAG" --force
+```
+
+**One-time compute redirect** (presenters opening compute IP on port 80):
+
+```bash
+WAF_LB_URL=http://<lb_public_ip> sudo -E bash scripts/setup-waf-port80-redirect.sh
+```
+
+**Demo contrast:** `:3001` direct bypasses WAF (SQL Firewall only); `<lb_public_ip>/` shows edge blocking (**403**) for standard UI payloads.
 
 ---
 
