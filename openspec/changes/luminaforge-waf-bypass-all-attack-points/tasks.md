@@ -31,7 +31,7 @@
 - [x] 5.1 `npm run build` in `luminaforge` passes
 - [x] 5.2 Manual rehearsal on OCI LB URL: each tab — canonical **403** (where applicable) → bypass **200** (or document fallback)
 - [x] 5.3 `:3001` regression: all four canonical payloads still work
-- [ ] 5.4 Deploy to compute VM: `git pull`, `npm run build`, `systemctl restart luminaforge`
+- [x] 5.4 Deploy to compute VM: `git pull`, `npm run build`, `systemctl restart luminaforge`
 
 ## 6. Human review (OpenSpec gate)
 
