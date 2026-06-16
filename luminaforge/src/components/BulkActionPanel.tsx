@@ -88,7 +88,9 @@ export function BulkActionPanel({ onResult }: Props) {
           }}
         />
         <p className="mt-1 text-[10px] text-slate-600 font-mono">{DEMO_HINT}</p>
-        <p className="mt-1 text-[10px] text-slate-600 font-mono">{ATTACK4_WAF_BYPASS_FALLBACK}</p>
+        <p className="mt-1 text-[10px] text-slate-600 font-mono break-all">
+          {ATTACK4_WAF_BYPASS_FALLBACK}
+        </p>
       </div>
 
       <button
