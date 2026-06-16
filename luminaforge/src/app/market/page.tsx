@@ -7,7 +7,6 @@ import { GlassCard } from "@/components/GlassCard";
 import { columnPayloadForTable } from "@/lib/market-demo-payloads";
 import {
   ATTACK1_WAF_BYPASS_BOOLEAN,
-  ATTACK1_WAF_BYPASS_XML_HEX,
 } from "@/lib/waf-bypass-demo-payloads";
 import { wafMirrorUrl } from "@/lib/waf-query-mirror";
 
@@ -80,34 +79,68 @@ export default function MarketExplorerPage() {
     const now = Date.now();
     const last = lastSearchRef.current;
     if (last && last.payload === payload && now - last.at < 60_000) {
-      return; // same payload within cooldown — skip to avoid duplicate Oracle violations
+      setError("Same payload was just run — wait 60s before retrying (SQL Firewall demo cooldown).");
+      setLoading(false);
+      return;
     }
-    lastSearchRef.current = { payload, at: now };
 
     setError(null);
     const ran = await runSearch(async () => {
       setLoading(true);
       setSearched(true);
       try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 30_000);
         const res = await fetch(wafMirrorUrl("/api/market/search", { q: query }), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ q: query }),
+          signal: controller.signal,
         });
-        const data = await res.json() as { rows?: LuxItem[]; error?: string };
+        clearTimeout(timeout);
+
+        let data: { rows?: LuxItem[]; error?: string; message?: string; code?: string };
+        try {
+          data = (await res.json()) as typeof data;
+        } catch {
+          setError(res.ok ? "Invalid response from server" : `HTTP ${res.status}`);
+          setResults([]);
+          return;
+        }
+
+        if (!res.ok) {
+          const wafMsg =
+            data.message ??
+            (res.status === 403 ? "Blocked by OCI WAF — try the WAF bypass hint below" : `HTTP ${res.status}`);
+          setError(wafMsg);
+          setResults([]);
+          return;
+        }
+
         if (data.error) {
           setError(data.error);
           setResults([]);
-        } else {
-          setResults(data.rows ?? []);
+          return;
         }
-      } catch {
-        setError("Request failed");
+
+        lastSearchRef.current = { payload, at: Date.now() };
+        setResults(data.rows ?? []);
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") {
+          setError("Search timed out after 30s — check DB connectivity and retry");
+        } else {
+          setError("Request failed");
+        }
+        setResults([]);
       } finally {
         setLoading(false);
       }
     });
-    if (ran === undefined) return;
+
+    if (ran === undefined) {
+      setError("Search already in progress — please wait");
+      setLoading(false);
+    }
   }
 
   return (
@@ -151,9 +184,6 @@ export default function MarketExplorerPage() {
         <p className="mt-1 text-[10px] text-slate-600 font-mono">{DEMO_HINT_COLUMNS}</p>
         <p className="mt-2 break-all text-[10px] text-slate-600 font-mono">
           WAF bypass (comment OR): {ATTACK1_WAF_BYPASS_BOOLEAN}
-        </p>
-        <p className="mt-1 break-all text-[10px] text-slate-600 font-mono">
-          WAF bypass (XML/hex): {ATTACK1_WAF_BYPASS_XML_HEX}
         </p>
       </GlassCard>
 
