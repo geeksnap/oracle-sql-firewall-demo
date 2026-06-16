@@ -5,6 +5,7 @@ import { clsx } from "clsx";
 import { createSingleFlight } from "@/lib/single-flight";
 import { GlassCard } from "./GlassCard";
 import { ATTACK2_WAF_BYPASS_XML_HEX } from "@/lib/waf-bypass-demo-payloads";
+import { WafBypassHintRow } from "@/components/WafBypassHintRow";
 import { wafMirrorUrl } from "@/lib/waf-query-mirror";
 
 export interface TxRow {
@@ -135,9 +136,13 @@ export function TransactionHistoryLookup({ onResults }: Props) {
       </button>
 
       <p className="mt-2 font-mono text-[10px] text-slate-600">{DEMO_HINT}</p>
-      <p className="mt-1 font-mono text-[10px] text-slate-600 break-all">
-        WAF bypass (XML/hex): {ATTACK2_WAF_BYPASS_XML_HEX}
-      </p>
+      <WafBypassHintRow
+        label="WAF bypass (XML/hex)"
+        payload={ATTACK2_WAF_BYPASS_XML_HEX}
+        onUse={(p) => {
+          setRef(p);
+        }}
+      />
     </GlassCard>
   );
 }

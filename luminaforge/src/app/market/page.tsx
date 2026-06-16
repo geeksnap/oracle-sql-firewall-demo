@@ -7,7 +7,9 @@ import { GlassCard } from "@/components/GlassCard";
 import { columnPayloadForTable } from "@/lib/market-demo-payloads";
 import {
   ATTACK1_WAF_BYPASS_BOOLEAN,
+  ATTACK1_WAF_BYPASS_XML_HEX,
 } from "@/lib/waf-bypass-demo-payloads";
+import { WafBypassHintRow } from "@/components/WafBypassHintRow";
 import { wafMirrorUrl } from "@/lib/waf-query-mirror";
 
 interface LuxItem {
@@ -182,9 +184,25 @@ export default function MarketExplorerPage() {
         <p className="mt-2 text-[10px] text-slate-600 font-mono">{DEMO_HINT_BOOLEAN}</p>
         <p className="mt-1 text-[10px] text-slate-600 font-mono">{DEMO_HINT_SCHEMA}</p>
         <p className="mt-1 text-[10px] text-slate-600 font-mono">{DEMO_HINT_COLUMNS}</p>
-        <p className="mt-2 break-all text-[10px] text-slate-600 font-mono">
-          WAF bypass (comment OR): {ATTACK1_WAF_BYPASS_BOOLEAN}
+        <p className="mt-2 text-[10px] font-medium uppercase tracking-wider text-slate-500">
+          WAF bypass (LB URL)
         </p>
+        <WafBypassHintRow
+          label="comment OR"
+          payload={ATTACK1_WAF_BYPASS_BOOLEAN}
+          onUse={(p) => {
+            setQuery(p);
+            setError(null);
+          }}
+        />
+        <WafBypassHintRow
+          label="XML/hex"
+          payload={ATTACK1_WAF_BYPASS_XML_HEX}
+          onUse={(p) => {
+            setQuery(p);
+            setError(null);
+          }}
+        />
       </GlassCard>
 
       {/* Results */}
