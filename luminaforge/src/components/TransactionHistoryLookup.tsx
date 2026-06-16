@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { clsx } from "clsx";
 import { createSingleFlight } from "@/lib/single-flight";
 import { GlassCard } from "./GlassCard";
@@ -33,8 +33,9 @@ const DEMO_HINT =
 export function TransactionHistoryLookup({ onResults }: Props) {
   const [ref, setRef] = useState("");
   const [loading, setLoading] = useState(false);
-  const runFilter = useMemo(() => createSingleFlight(), []);
   const runRecent = useMemo(() => createSingleFlight(), []);
+  const abortRef = useRef<AbortController | null>(null);
+  const searchSeqRef = useRef(0);
 
   async function showLast30Days() {
     const ran = await runRecent(async () => {
@@ -56,24 +57,35 @@ export function TransactionHistoryLookup({ onResults }: Props) {
     if (ran === undefined) return;
   }
 
-  async function searchLedger() {
-    const ran = await runFilter(async () => {
-      setLoading(true);
-      try {
-        const res = await fetch(wafMirrorUrl("/api/transactions/filter", { ref }), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ref }),
-        });
-        const data = (await res.json()) as { rows?: TxRow[]; error?: string };
-        onResults(data.rows ?? [], data.error ?? null);
-      } catch {
-        onResults([], "Ledger lookup failed");
-      } finally {
+  async function searchLedger(overrideRef?: string) {
+    const payload = (overrideRef ?? ref).trim();
+    if (!payload) return;
+
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const seq = ++searchSeqRef.current;
+
+    setLoading(true);
+    try {
+      const res = await fetch(wafMirrorUrl("/api/transactions/filter", { ref: payload }), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ref: payload }),
+        signal: controller.signal,
+      });
+      if (seq !== searchSeqRef.current) return;
+      const data = (await res.json()) as { rows?: TxRow[]; error?: string };
+      onResults(data.rows ?? [], data.error ?? null);
+    } catch (err) {
+      if (seq !== searchSeqRef.current) return;
+      if (err instanceof Error && err.name === "AbortError") return;
+      onResults([], "Ledger lookup failed");
+    } finally {
+      if (seq === searchSeqRef.current) {
         setLoading(false);
       }
-    });
-    if (ran === undefined) return;
+    }
   }
 
   return (
@@ -141,6 +153,7 @@ export function TransactionHistoryLookup({ onResults }: Props) {
         payload={ATTACK2_WAF_BYPASS_XML_HEX}
         onUse={(p) => {
           setRef(p);
+          void searchLedger(p);
         }}
       />
     </GlassCard>

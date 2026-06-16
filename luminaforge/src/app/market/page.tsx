@@ -1,15 +1,9 @@
 "use client";
 
 import { useState, useMemo, useRef } from "react";
-import { createSingleFlight } from "@/lib/single-flight";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/GlassCard";
 import { columnPayloadForTable } from "@/lib/market-demo-payloads";
-import {
-  ATTACK1_WAF_BYPASS_BOOLEAN,
-  ATTACK1_WAF_BYPASS_XML_HEX,
-} from "@/lib/waf-bypass-demo-payloads";
-import { WafBypassHintRow } from "@/components/WafBypassHintRow";
 import { wafMirrorUrl } from "@/lib/waf-query-mirror";
 
 interface LuxItem {
@@ -19,11 +13,10 @@ interface LuxItem {
   CATEGORY?: string; category?: string;
 }
 
-const DEMO_HINT_BOOLEAN = `Step 1 · Boolean bypass → ' OR '1'='1`;
 const DEMO_HINT_SCHEMA =
-  `Step 2 · Schema tables → ' UNION SELECT ROWNUM, table_name, 0, 'SCHEMA' FROM user_tables --`;
+  `Step 2 · Schema tables → ' UNION SELECT ROWNUM, table_name, 0, 'SCHEMA' FROM user_tables -- (blocked on LB)`;
 const DEMO_HINT_COLUMNS =
-  `Step 3 · Table columns → ' AND 1=0 UNION SELECT ROWNUM, column_name || ' · ' || data_type, 0, 'COLUMNS' FROM user_tab_columns WHERE table_name = 'USERS' --`;
+  `Step 3 · Table columns → ' AND 1=0 UNION SELECT ROWNUM, column_name || ' · ' || data_type, 0, 'COLUMNS' FROM user_tab_columns WHERE table_name = 'USERS' -- (blocked on LB)`;
 
 function itemCategory(item: LuxItem): string {
   return String(item.CATEGORY ?? item.category ?? "").toUpperCase();
@@ -47,9 +40,7 @@ export default function MarketExplorerPage() {
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const runSearch = useMemo(() => createSingleFlight(), []);
-  /** Tracks {payload, firedAt} so the same injection can't fire more than once per 60 s. */
-  const lastSearchRef = useRef<{ payload: string; at: number } | null>(null);
+  const searchSeqRef = useRef(0);
 
   const columnsLeaked = useMemo(
     () => results.some(isColumnsRow),
@@ -78,69 +69,47 @@ export default function MarketExplorerPage() {
     const payload = query.trim();
     if (!payload) return;
 
-    const now = Date.now();
-    const last = lastSearchRef.current;
-    if (last && last.payload === payload && now - last.at < 60_000) {
-      setError("Same payload was just run — wait 60s before retrying (SQL Firewall demo cooldown).");
-      setLoading(false);
-      return;
-    }
-
+    const seq = ++searchSeqRef.current;
     setError(null);
-    const ran = await runSearch(async () => {
-      setLoading(true);
-      setSearched(true);
+    setResults([]);
+    setLoading(true);
+    setSearched(true);
+
+    try {
+      const res = await fetch(wafMirrorUrl("/api/market/search", { q: payload }), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ q: payload }),
+        cache: "no-store",
+      });
+
+      let data: { rows?: LuxItem[]; error?: string; message?: string; code?: string };
       try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 30_000);
-        const res = await fetch(wafMirrorUrl("/api/market/search", { q: query }), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ q: query }),
-          signal: controller.signal,
-        });
-        clearTimeout(timeout);
-
-        let data: { rows?: LuxItem[]; error?: string; message?: string; code?: string };
-        try {
-          data = (await res.json()) as typeof data;
-        } catch {
-          setError(res.ok ? "Invalid response from server" : `HTTP ${res.status}`);
-          setResults([]);
-          return;
-        }
-
-        if (!res.ok) {
-          const wafMsg =
-            data.message ??
-            (res.status === 403 ? "Blocked by OCI WAF — try the WAF bypass hint below" : `HTTP ${res.status}`);
-          setError(wafMsg);
-          setResults([]);
-          return;
-        }
-
-        if (data.error) {
-          setError(data.error);
-          setResults([]);
-          return;
-        }
-
-        lastSearchRef.current = { payload, at: Date.now() };
-        setResults(data.rows ?? []);
-      } catch (err) {
-        if (err instanceof Error && err.name === "AbortError") {
-          setError("Search timed out after 30s — check DB connectivity and retry");
-        } else {
-          setError("Request failed");
-        }
-        setResults([]);
-      } finally {
-        setLoading(false);
+        data = (await res.json()) as typeof data;
+      } catch {
+        if (seq !== searchSeqRef.current) return;
+        setError(res.ok ? "Invalid response from server" : `HTTP ${res.status}`);
+        return;
       }
-    });
 
-    if (ran === undefined) {
-      setError("Search already in progress — please wait");
+      if (seq !== searchSeqRef.current) return;
+
+      if (!res.ok) {
+        const msg = data.message ?? (res.status === 403 ? "Blocked by OCI WAF" : `HTTP ${res.status}`);
+        setError(msg);
+        return;
+      }
+
+      if (data.error) {
+        setError(data.error);
+        return;
+      }
+
+      setResults(data.rows ?? []);
+    } catch {
+      if (seq !== searchSeqRef.current) return;
+      setError("Request failed — check network and retry");
+    } finally {
       setLoading(false);
     }
   }
@@ -161,48 +130,37 @@ export default function MarketExplorerPage() {
         <label className="block text-xs uppercase tracking-wider text-slate-500 mb-2">
           Lux-Asset / Ticker Universal Search
         </label>
-        <div className="flex gap-3">
-          <input
+        <div className="flex gap-3 items-start">
+          <textarea
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && void search()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                void search();
+              }
+            }}
+            rows={2}
             placeholder="Enter asset name, ticker or category…"
-            className="flex-1 rounded-lg px-4 py-2.5 text-sm text-slate-200 placeholder:text-slate-600 outline-none font-mono"
+            className="flex-1 resize-y rounded-lg px-4 py-2.5 text-sm text-slate-200 placeholder:text-slate-600 outline-none font-mono min-h-[2.75rem]"
             style={{
               background: "rgba(15,23,42,0.8)",
               border: "1px solid rgba(244,201,93,0.2)",
             }}
           />
           <button
+            type="button"
             onClick={() => void search()}
-            disabled={loading}
-            className="gold-btn rounded-lg px-6 py-2.5 text-sm disabled:opacity-50"
+            className="gold-btn shrink-0 rounded-lg px-6 py-2.5 text-sm"
           >
             {loading ? "Searching…" : "Search"}
           </button>
         </div>
-        <p className="mt-2 text-[10px] text-slate-600 font-mono">{DEMO_HINT_BOOLEAN}</p>
+        <p className="mt-2 text-[10px] text-slate-600 font-mono">
+          Step 1 · Boolean bypass → ' OR '1'='1 (blocked on LB URL)
+        </p>
         <p className="mt-1 text-[10px] text-slate-600 font-mono">{DEMO_HINT_SCHEMA}</p>
         <p className="mt-1 text-[10px] text-slate-600 font-mono">{DEMO_HINT_COLUMNS}</p>
-        <p className="mt-2 text-[10px] font-medium uppercase tracking-wider text-slate-500">
-          WAF bypass (LB URL)
-        </p>
-        <WafBypassHintRow
-          label="comment OR"
-          payload={ATTACK1_WAF_BYPASS_BOOLEAN}
-          onUse={(p) => {
-            setQuery(p);
-            setError(null);
-          }}
-        />
-        <WafBypassHintRow
-          label="XML/hex"
-          payload={ATTACK1_WAF_BYPASS_XML_HEX}
-          onUse={(p) => {
-            setQuery(p);
-            setError(null);
-          }}
-        />
       </GlassCard>
 
       {/* Results */}
@@ -212,7 +170,11 @@ export default function MarketExplorerPage() {
         </GlassCard>
       )}
 
-      {searched && !error && (
+      {loading && searched && (
+        <p className="mb-4 text-center text-sm text-slate-500">Searching…</p>
+      )}
+
+      {searched && !loading && !error && (
         <div>
           {columnsLeaked && (
             <div

@@ -4,6 +4,9 @@
  * JMESPath rules on mirrored query strings while executing via raw concat.
  */
 
+/** Attack Point 1 — canonical boolean bypass (blocked by OCI WAF on LB URL). */
+export const ATTACK1_CANONICAL_BOOLEAN = "' OR '1'='1";
+
 /** Attack Point 1 — boolean bypass; evades %27%20OR%20 via SQL comment obfuscation around OR. */
 export const ATTACK1_WAF_BYPASS_BOOLEAN = "'/**/OR/**/'1'='1";
 
