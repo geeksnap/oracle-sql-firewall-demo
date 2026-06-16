@@ -23,7 +23,7 @@ Stunning user-facing premium wealth + luxury marketplace app (B2C/Enterprise). D
 
 ### 5. 4 Hacking Points (All UI-triggered)
 1. Market Explorer Search → SQL Injection 3-step recon: (1) `' OR '1'='1` all `luxury_items`; (2) `' UNION SELECT ROWNUM, table_name, 0, 'SCHEMA' FROM user_tables --` table names; (3) `' AND 1=0 UNION SELECT ROWNUM, column_name || ' · ' || data_type, 0, 'COLUMNS' FROM user_tab_columns WHERE table_name = '<TABLE>' --` column schema (click step-2 row or use `USERS`)
-2. Transaction History **Institutional Transaction Lookup** (ledger search bar) → SQL Injection — **Show all my last 30 days records** uses safe `POST /api/transactions/recent` (binds, demo user only); ledger table includes **Asset**; benign type (e.g. `BUY`) returns `user_id=1` only; payload `x' OR user_id<>1 --` exfiltrates cross-client rows (seeded user_id 3, 4, 5, 8, 9)
+2. Transaction History **Institutional Transaction Lookup** (ledger search bar) → SQL Injection — **Show all my last 30 days records** uses safe `POST /api/transactions/recent` (binds, demo user only); ledger table includes **Asset**; benign type (e.g. `BUY`) returns `user_id=1` only; payload `x' OR user_id<>1 --` exfiltrates cross-client rows (seeded user_id 3, 4, 5, 8, 9). **WAF differentiation demo (OCI):** canonical payload blocked on LB URL; secondary UI hint documents XML/hex `REGEXP_LIKE` / `DBMS_XMLGEN` / `HEXTORAW` bypass (`waf-bypass-demo-payloads.ts`) that reaches the DB and triggers SQL Firewall in Aegis
 3. Generate Custom Statement → UNION attack — payload `0 UNION SELECT TO_CHAR(id), username, password, role FROM users` (27 seeded accounts; `users.password` via `scripts/reset-demo-data.sql`)
 4. Quick Bulk Action → Stacked query
 
