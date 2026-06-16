@@ -83,7 +83,7 @@ export function UniversalSearchBar() {
           onKeyDown={handleKeyDown}
           onFocus={() => query && setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
-          placeholder="Search assets, tickers, luxury items…"
+          placeholder="Search investments, tickers, bonds, ETFs, crypto…"
           className="flex-1 bg-transparent text-sm text-slate-200 placeholder:text-slate-500 outline-none"
         />
         {loading && (

@@ -245,6 +245,30 @@ INSERT INTO portfolio (user_id, symbol, quantity, avg_price) VALUES (9, 'SPY',  
 INSERT INTO portfolio (user_id, symbol, quantity, avg_price) VALUES (9, 'QQQ',   1800,  418.00);
 INSERT INTO portfolio (user_id, symbol, quantity, avg_price) VALUES (9, 'TLT',   3200,   94.20);
 
+-- 2d. Market instrument rows for Attack Point 1 (reset full table)
+DELETE FROM luxury_items;
+
+INSERT INTO luxury_items (name, price, category) VALUES ('Oracle Corp (ORCL)',               141.50,  'stock');
+INSERT INTO luxury_items (name, price, category) VALUES ('Microsoft Corp (MSFT)',            415.20,  'stock');
+INSERT INTO luxury_items (name, price, category) VALUES ('JPMorgan Chase (JPM)',             198.60,  'stock');
+INSERT INTO luxury_items (name, price, category) VALUES ('NVIDIA Corp (NVDA)',               924.60,  'stock');
+INSERT INTO luxury_items (name, price, category) VALUES ('Apple Inc (AAPL)',                 187.23,  'stock');
+INSERT INTO luxury_items (name, price, category) VALUES ('US Treasury Bond 10Y',             101.80,  'bond');
+INSERT INTO luxury_items (name, price, category) VALUES ('US Treasury Bill 6M',               99.40,  'bond');
+INSERT INTO luxury_items (name, price, category) VALUES ('Investment Grade Corp Bond A',     102.30,  'bond');
+INSERT INTO luxury_items (name, price, category) VALUES ('High Yield Corp Bond B',            95.70,  'bond');
+INSERT INTO luxury_items (name, price, category) VALUES ('Vanguard S&P 500 ETF (VOO)',       490.00,  'etf');
+INSERT INTO luxury_items (name, price, category) VALUES ('SPDR S&P 500 ETF (SPY)',           488.00,  'etf');
+INSERT INTO luxury_items (name, price, category) VALUES ('Invesco QQQ Trust (QQQ)',          418.00,  'etf');
+INSERT INTO luxury_items (name, price, category) VALUES ('Vanguard Total Market ETF (VTI)',  235.60,  'etf');
+INSERT INTO luxury_items (name, price, category) VALUES ('Bitcoin (BTC)',                   68450.00, 'crypto');
+INSERT INTO luxury_items (name, price, category) VALUES ('Ethereum (ETH)',                   3620.00, 'crypto');
+INSERT INTO luxury_items (name, price, category) VALUES ('Solana (SOL)',                      145.00, 'crypto');
+INSERT INTO luxury_items (name, price, category) VALUES ('Gold Spot (XAU)',                  2280.00, 'metal');
+INSERT INTO luxury_items (name, price, category) VALUES ('Silver Spot (XAG)',                  28.50, 'metal');
+INSERT INTO luxury_items (name, price, category) VALUES ('20+ Year Treasury ETF (TLT)',       94.20,  'bond_etf');
+INSERT INTO luxury_items (name, price, category) VALUES ('Corporate Bond ETF (LQD)',         109.30,  'bond_etf');
+
 -- 3. Verify final state
 PROMPT
 PROMPT === Users (should show all 27 with correct roles) ===

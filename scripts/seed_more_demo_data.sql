@@ -53,38 +53,38 @@ INSERT INTO transactions (user_id, type, amount, timestamp) VALUES (1, 'REBALANC
 INSERT INTO transactions (user_id, type, amount, timestamp) VALUES (1, 'INTEREST',   2190, SYSTIMESTAMP - INTERVAL '10' DAY);
 INSERT INTO transactions (user_id, type, amount, timestamp) VALUES (1, 'BUY',       53400, SYSTIMESTAMP - INTERVAL '3'  DAY);
 
--- ── Luxury Items: 8 new items ─────────────────────────────────────────────
+-- ── Market Instruments: 8 additive rows ───────────────────────────────────
 INSERT INTO luxury_items (name, price, category)
-  SELECT 'Audemars Piguet Royal Oak Offshore', 98000, 'watch' FROM dual
-  WHERE NOT EXISTS (SELECT 1 FROM luxury_items WHERE name='Audemars Piguet Royal Oak Offshore');
+  SELECT 'JPMorgan Chase (JPM)', 198.60, 'stock' FROM dual
+  WHERE NOT EXISTS (SELECT 1 FROM luxury_items WHERE name='JPMorgan Chase (JPM)');
 
 INSERT INTO luxury_items (name, price, category)
-  SELECT 'A. Lange & Söhne Zeitwerk', 175000, 'watch' FROM dual
-  WHERE NOT EXISTS (SELECT 1 FROM luxury_items WHERE name='A. Lange & Söhne Zeitwerk');
+  SELECT 'US Treasury Bill 6M', 99.40, 'bond' FROM dual
+  WHERE NOT EXISTS (SELECT 1 FROM luxury_items WHERE name='US Treasury Bill 6M');
 
 INSERT INTO luxury_items (name, price, category)
-  SELECT 'Rolls-Royce Spectre EV', 420000, 'vehicle' FROM dual
-  WHERE NOT EXISTS (SELECT 1 FROM luxury_items WHERE name='Rolls-Royce Spectre EV');
+  SELECT 'Invesco QQQ Trust (QQQ)', 418.00, 'etf' FROM dual
+  WHERE NOT EXISTS (SELECT 1 FROM luxury_items WHERE name='Invesco QQQ Trust (QQQ)');
 
 INSERT INTO luxury_items (name, price, category)
-  SELECT 'Bugatti Chiron Super Sport', 3800000, 'vehicle' FROM dual
-  WHERE NOT EXISTS (SELECT 1 FROM luxury_items WHERE name='Bugatti Chiron Super Sport');
+  SELECT 'Vanguard Total Market ETF (VTI)', 235.60, 'etf' FROM dual
+  WHERE NOT EXISTS (SELECT 1 FROM luxury_items WHERE name='Vanguard Total Market ETF (VTI)');
 
 INSERT INTO luxury_items (name, price, category)
-  SELECT 'Gulfstream G700 Private Jet', 75000000, 'aviation' FROM dual
-  WHERE NOT EXISTS (SELECT 1 FROM luxury_items WHERE name='Gulfstream G700 Private Jet');
+  SELECT 'Ethereum (ETH)', 3620.00, 'crypto' FROM dual
+  WHERE NOT EXISTS (SELECT 1 FROM luxury_items WHERE name='Ethereum (ETH)');
 
 INSERT INTO luxury_items (name, price, category)
-  SELECT 'Banksy "Girl with Balloon" (orig)', 1200000, 'art' FROM dual
-  WHERE NOT EXISTS (SELECT 1 FROM luxury_items WHERE name='Banksy "Girl with Balloon" (orig)');
+  SELECT 'Gold Spot (XAU)', 2280.00, 'metal' FROM dual
+  WHERE NOT EXISTS (SELECT 1 FROM luxury_items WHERE name='Gold Spot (XAU)');
 
 INSERT INTO luxury_items (name, price, category)
-  SELECT 'Cartier Panthère Necklace', 320000, 'jewelry' FROM dual
-  WHERE NOT EXISTS (SELECT 1 FROM luxury_items WHERE name='Cartier Panthère Necklace');
+  SELECT 'Silver Spot (XAG)', 28.50, 'metal' FROM dual
+  WHERE NOT EXISTS (SELECT 1 FROM luxury_items WHERE name='Silver Spot (XAG)');
 
 INSERT INTO luxury_items (name, price, category)
-  SELECT 'Aspen Mountain Chalet — 8BR', 22800000, 'real_estate' FROM dual
-  WHERE NOT EXISTS (SELECT 1 FROM luxury_items WHERE name='Aspen Mountain Chalet — 8BR');
+  SELECT 'Corporate Bond ETF (LQD)', 109.30, 'bond_etf' FROM dual
+  WHERE NOT EXISTS (SELECT 1 FROM luxury_items WHERE name='Corporate Bond ETF (LQD)');
 
 COMMIT;
 
@@ -105,7 +105,7 @@ WHERE  user_id = 1
 ORDER BY timestamp DESC;
 
 PROMPT
-PROMPT === Luxury Items (should show 20 items) ===
+PROMPT === Market instruments in luxury_items (should show 20+ rows) ===
 SELECT name, price, category FROM luxury_items ORDER BY category, price DESC;
 
 PROMPT

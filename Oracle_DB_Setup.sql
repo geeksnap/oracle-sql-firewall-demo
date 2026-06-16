@@ -200,37 +200,36 @@ INSERT INTO transactions (user_id, type, amount, asset, timestamp) VALUES (9, 'B
 INSERT INTO transactions (user_id, type, amount, asset, timestamp) VALUES (9, 'REBALANCE',680000, 'TLT',       SYSTIMESTAMP - INTERVAL '4'  DAY);
 INSERT INTO transactions (user_id, type, amount, asset, timestamp) VALUES (9, 'WIRE',   4200000, 'WIRE-HF',   SYSTIMESTAMP - INTERVAL '1'  DAY);
 
--- ── 8d. Luxury Items (20 items) ─────────────────────────────────────────
--- Point 1 benign search (e.g. "Rolex") returns 1-2 visible items.
--- Payload ' OR '1'='1 reveals ALL rows — including multi-million-dollar
--- unlisted assets that should not be visible to regular clients.
--- Watches
-INSERT INTO luxury_items (name, price, category) VALUES ('Rolex Submariner Date',              12500,    'watch');
-INSERT INTO luxury_items (name, price, category) VALUES ('Patek Philippe Nautilus 5711',      185000,   'watch');
-INSERT INTO luxury_items (name, price, category) VALUES ('Richard Mille RM 055 Carbon',       290000,   'watch');
-INSERT INTO luxury_items (name, price, category) VALUES ('Audemars Piguet Royal Oak Offshore', 98000,   'watch');
-INSERT INTO luxury_items (name, price, category) VALUES ('A. Lange & Söhne Zeitwerk',         175000,   'watch');
--- Vehicles
-INSERT INTO luxury_items (name, price, category) VALUES ('Ferrari SF90 Stradale',             520000,   'vehicle');
-INSERT INTO luxury_items (name, price, category) VALUES ('Lamborghini Urus Performante',       265000,   'vehicle');
-INSERT INTO luxury_items (name, price, category) VALUES ('Rolls-Royce Spectre EV',            420000,   'vehicle');
-INSERT INTO luxury_items (name, price, category) VALUES ('Bugatti Chiron Super Sport',       3800000,   'vehicle');
--- Yachts & Aviation
-INSERT INTO luxury_items (name, price, category) VALUES ('82ft Sunseeker Predator Yacht',    4200000,  'yacht');
-INSERT INTO luxury_items (name, price, category) VALUES ('Gulfstream G700 Private Jet',     75000000,  'aviation');
--- Art
-INSERT INTO luxury_items (name, price, category) VALUES ('Basquiat "Warrior" 1982',          8700000,  'art');
-INSERT INTO luxury_items (name, price, category) VALUES ('Warhol "Dollar Sign" Print',        450000,  'art');
-INSERT INTO luxury_items (name, price, category) VALUES ('Banksy "Girl with Balloon" (orig)', 1200000, 'art');
--- Jewelry
-INSERT INTO luxury_items (name, price, category) VALUES ('18ct Blue Diamond Pendant',        2100000,  'jewelry');
-INSERT INTO luxury_items (name, price, category) VALUES ('10ct Fancy Yellow Diamond Ring',    385000,  'jewelry');
-INSERT INTO luxury_items (name, price, category) VALUES ('Cartier Panthère Necklace',         320000,  'jewelry');
--- Real Estate
-INSERT INTO luxury_items (name, price, category) VALUES ('Monaco Penthouse — Larvotto',     12500000,  'real_estate');
-INSERT INTO luxury_items (name, price, category) VALUES ('Aspen Mountain Chalet — 8BR',     22800000,  'real_estate');
--- Collectibles
-INSERT INTO luxury_items (name, price, category) VALUES ('Petrus 2000 Magnum Case',            45000,  'wine');
+-- ── 8d. Market Instruments (20 rows in luxury_items table) ───────────────────
+-- Point 1 benign search (e.g. "ORCL") returns focused instrument rows.
+-- Payload ' OR '1'='1 reveals ALL instrument categories that should not be
+-- visible through a narrow user query.
+-- Stocks
+INSERT INTO luxury_items (name, price, category) VALUES ('Oracle Corp (ORCL)',               141.50,  'stock');
+INSERT INTO luxury_items (name, price, category) VALUES ('Microsoft Corp (MSFT)',            415.20,  'stock');
+INSERT INTO luxury_items (name, price, category) VALUES ('JPMorgan Chase (JPM)',             198.60,  'stock');
+INSERT INTO luxury_items (name, price, category) VALUES ('NVIDIA Corp (NVDA)',               924.60,  'stock');
+INSERT INTO luxury_items (name, price, category) VALUES ('Apple Inc (AAPL)',                 187.23,  'stock');
+-- Bonds
+INSERT INTO luxury_items (name, price, category) VALUES ('US Treasury Bond 10Y',             101.80,  'bond');
+INSERT INTO luxury_items (name, price, category) VALUES ('US Treasury Bill 6M',               99.40,  'bond');
+INSERT INTO luxury_items (name, price, category) VALUES ('Investment Grade Corp Bond A',     102.30,  'bond');
+INSERT INTO luxury_items (name, price, category) VALUES ('High Yield Corp Bond B',            95.70,  'bond');
+-- ETFs
+INSERT INTO luxury_items (name, price, category) VALUES ('Vanguard S&P 500 ETF (VOO)',       490.00,  'etf');
+INSERT INTO luxury_items (name, price, category) VALUES ('SPDR S&P 500 ETF (SPY)',           488.00,  'etf');
+INSERT INTO luxury_items (name, price, category) VALUES ('Invesco QQQ Trust (QQQ)',          418.00,  'etf');
+INSERT INTO luxury_items (name, price, category) VALUES ('Vanguard Total Market ETF (VTI)',  235.60,  'etf');
+-- Crypto
+INSERT INTO luxury_items (name, price, category) VALUES ('Bitcoin (BTC)',                   68450.00, 'crypto');
+INSERT INTO luxury_items (name, price, category) VALUES ('Ethereum (ETH)',                   3620.00, 'crypto');
+INSERT INTO luxury_items (name, price, category) VALUES ('Solana (SOL)',                      145.00, 'crypto');
+-- Metals
+INSERT INTO luxury_items (name, price, category) VALUES ('Gold Spot (XAU)',                  2280.00, 'metal');
+INSERT INTO luxury_items (name, price, category) VALUES ('Silver Spot (XAG)',                  28.50, 'metal');
+-- Other investment instruments
+INSERT INTO luxury_items (name, price, category) VALUES ('20+ Year Treasury ETF (TLT)',       94.20,  'bond_etf');
+INSERT INTO luxury_items (name, price, category) VALUES ('Corporate Bond ETF (LQD)',         109.30,  'bond_etf');
 
 COMMIT;
 

@@ -40,6 +40,8 @@ export default function MarketExplorerPage() {
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const queryRef = useRef("");
+  const abortRef = useRef<AbortController | null>(null);
   const searchSeqRef = useRef(0);
 
   const columnsLeaked = useMemo(
@@ -66,7 +68,7 @@ export default function MarketExplorerPage() {
   }
 
   async function search() {
-    const payload = query.trim();
+    const payload = queryRef.current.trim();
     if (!payload) return;
 
     const seq = ++searchSeqRef.current;
@@ -76,12 +78,19 @@ export default function MarketExplorerPage() {
     setSearched(true);
 
     try {
+      // Cancel stale in-flight calls so a new click always reflects latest input.
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+      const timeout = setTimeout(() => controller.abort(), 30_000);
       const res = await fetch(wafMirrorUrl("/api/market/search", { q: payload }), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ q: payload }),
         cache: "no-store",
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
 
       let data: { rows?: LuxItem[]; error?: string; message?: string; code?: string };
       try {
@@ -95,6 +104,9 @@ export default function MarketExplorerPage() {
       if (seq !== searchSeqRef.current) return;
 
       if (!res.ok) {
+        if (res.status === 403) {
+          window.alert("SQL injection detected by OCI WAF and blocked.");
+        }
         const msg = data.message ?? (res.status === 403 ? "Blocked by OCI WAF" : `HTTP ${res.status}`);
         setError(msg);
         return;
@@ -106,11 +118,17 @@ export default function MarketExplorerPage() {
       }
 
       setResults(data.rows ?? []);
-    } catch {
+    } catch (err) {
       if (seq !== searchSeqRef.current) return;
-      setError("Request failed — check network and retry");
+      if (err instanceof Error && err.name === "AbortError") {
+        setError("Search timed out after 30s — retry");
+      } else {
+        setError("Request failed — check network and retry");
+      }
     } finally {
-      setLoading(false);
+      if (seq === searchSeqRef.current) {
+        setLoading(false);
+      }
     }
   }
 
@@ -120,29 +138,35 @@ export default function MarketExplorerPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-black gold-gradient mb-2">Market Explorer</h1>
         <p className="text-slate-400 text-sm">
-          Discover exclusive luxury assets, collectibles, and alternative investments.
-          Search by name, category, or asset ticker.
+          Search market-priced investment instruments across equities, bonds, ETFs, crypto, and metals.
+          Search by ticker, instrument type, or market keyword.
         </p>
       </div>
 
       {/* Search card */}
       <GlassCard gold className="mb-8">
         <label className="block text-xs uppercase tracking-wider text-slate-500 mb-2">
-          Lux-Asset / Ticker Universal Search
+          Investment Type / Ticker Universal Search
         </label>
         <div className="flex gap-3 items-start">
-          <textarea
+          <input
+            type="text"
+            name="market-search-q"
+            autoComplete="off"
+            spellCheck={false}
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              queryRef.current = e.target.value;
+            }}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
+              if (e.key === "Enter") {
                 e.preventDefault();
                 void search();
               }
             }}
-            rows={2}
-            placeholder="Enter asset name, ticker or category…"
-            className="flex-1 resize-y rounded-lg px-4 py-2.5 text-sm text-slate-200 placeholder:text-slate-600 outline-none font-mono min-h-[2.75rem]"
+            placeholder="Enter ticker, instrument type, or market keyword…"
+            className="flex-1 rounded-lg px-4 py-2.5 text-sm text-slate-200 placeholder:text-slate-600 outline-none font-mono h-11"
             style={{
               background: "rgba(15,23,42,0.8)",
               border: "1px solid rgba(244,201,93,0.2)",
@@ -151,13 +175,14 @@ export default function MarketExplorerPage() {
           <button
             type="button"
             onClick={() => void search()}
-            className="gold-btn shrink-0 rounded-lg px-6 py-2.5 text-sm"
+            disabled={loading}
+            className="gold-btn shrink-0 rounded-lg px-6 py-2.5 text-sm disabled:opacity-50"
           >
             {loading ? "Searching…" : "Search"}
           </button>
         </div>
         <p className="mt-2 text-[10px] text-slate-600 font-mono">
-          Step 1 · Boolean bypass → ' OR '1'='1 (blocked on LB URL)
+          Step 1 · Boolean bypass → ' OR '1'='1 (canonical payload, blocked on LB URL)
         </p>
         <p className="mt-1 text-[10px] text-slate-600 font-mono">{DEMO_HINT_SCHEMA}</p>
         <p className="mt-1 text-[10px] text-slate-600 font-mono">{DEMO_HINT_COLUMNS}</p>
@@ -200,7 +225,7 @@ export default function MarketExplorerPage() {
           )}
           {schemaLeaked && !columnsLeaked && (
             <p className="mb-3 text-[10px] text-slate-500">
-              Click a table card to load step 3 (column enumeration), then Search.
+              Click a table card to load step 3 (column enumeration), then search.
             </p>
           )}
           <div className="flex items-center justify-between mb-4">
@@ -209,7 +234,7 @@ export default function MarketExplorerPage() {
             </h2>
             {results.length > 0 && !schemaLeaked && !columnsLeaked && (
               <span className="text-xs text-slate-600">
-                Market data — live feed
+                Investment pricing demo feed
               </span>
             )}
             {schemaLeaked && !columnsLeaked && (
@@ -226,7 +251,7 @@ export default function MarketExplorerPage() {
 
           {displayResults.length === 0 ? (
             <GlassCard>
-              <p className="text-sm text-slate-500 text-center py-4">No assets matched your search.</p>
+              <p className="text-sm text-slate-500 text-center py-4">No instruments matched your search.</p>
             </GlassCard>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

@@ -86,7 +86,7 @@ export default function DashboardPage() {
         {/* Quick navigation cards */}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           {[
-            { href: "/market", title: "Market Explorer", desc: "Discover exclusive assets & tickers", icon: "◎" },
+            { href: "/market", title: "Market Explorer", desc: "Search investment instruments & tickers", icon: "◎" },
             { href: "/transactions", title: "Transactions", desc: "History & reference lookup", icon: "≡" },
             { href: "/statement", title: "Tax Statement", desc: "Download & generate reports", icon: "▤" },
             { href: "/bulk", title: "Bulk Transfer", desc: "Batch portfolio operations", icon: "⇄" },
