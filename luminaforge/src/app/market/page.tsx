@@ -5,6 +5,7 @@ import { createSingleFlight } from "@/lib/single-flight";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/GlassCard";
 import { columnPayloadForTable } from "@/lib/market-demo-payloads";
+import { ATTACK1_WAF_BYPASS_BOOLEAN } from "@/lib/waf-bypass-demo-payloads";
 import { wafMirrorUrl } from "@/lib/waf-query-mirror";
 
 interface LuxItem {
@@ -145,6 +146,9 @@ export default function MarketExplorerPage() {
         <p className="mt-2 text-[10px] text-slate-600 font-mono">{DEMO_HINT_BOOLEAN}</p>
         <p className="mt-1 text-[10px] text-slate-600 font-mono">{DEMO_HINT_SCHEMA}</p>
         <p className="mt-1 text-[10px] text-slate-600 font-mono">{DEMO_HINT_COLUMNS}</p>
+        <p className="mt-1 break-all text-[10px] text-slate-600 font-mono">
+          WAF bypass (step 1): {ATTACK1_WAF_BYPASS_BOOLEAN}
+        </p>
       </GlassCard>
 
       {/* Results */}

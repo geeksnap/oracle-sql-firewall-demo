@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { createSingleFlight } from "@/lib/single-flight";
 import { motion, AnimatePresence } from "framer-motion";
 import { GlassCard } from "./GlassCard";
+import { ATTACK4_WAF_BYPASS_FALLBACK } from "@/lib/waf-bypass-demo-payloads";
 import { wafMirrorUrl } from "@/lib/waf-query-mirror";
 
 interface Props {
@@ -87,6 +88,7 @@ export function BulkActionPanel({ onResult }: Props) {
           }}
         />
         <p className="mt-1 text-[10px] text-slate-600 font-mono">{DEMO_HINT}</p>
+        <p className="mt-1 text-[10px] text-slate-600 font-mono">{ATTACK4_WAF_BYPASS_FALLBACK}</p>
       </div>
 
       <button

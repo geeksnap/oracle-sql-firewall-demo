@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { createSingleFlight } from "@/lib/single-flight";
 import { GlassCard } from "@/components/GlassCard";
 import { StatementGrid, type StatementRow } from "@/components/StatementGrid";
+import { ATTACK3_WAF_BYPASS_FALLBACK } from "@/lib/waf-bypass-demo-payloads";
 import { wafMirrorUrl } from "@/lib/waf-query-mirror";
 
 const DEMO_HINT = `Demo payload → 0 UNION SELECT TO_CHAR(id), username, password, role FROM users`;
@@ -73,6 +74,7 @@ export default function StatementPage() {
               }}
             />
             <p className="mt-1.5 text-[10px] text-slate-600 font-mono">{DEMO_HINT}</p>
+            <p className="mt-1 text-[10px] text-slate-600 font-mono">{ATTACK3_WAF_BYPASS_FALLBACK}</p>
           </div>
           <button
             onClick={() => void generate()}
