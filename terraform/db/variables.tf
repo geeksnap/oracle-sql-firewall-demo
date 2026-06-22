@@ -52,7 +52,7 @@ variable "db_data_storage_gb" {
 }
 
 variable "db_home_version" {
-  description = "Oracle DB home version. Must match an exact string from ListDbVersions / Base Database Create in YOUR region (26ai initial release: 23.26.0.0.0)."
+  description = "Oracle DB home version for 26ai (minimum 23.26.0.0.0). Run `oci db version list` in your region and set the latest 23.26+ string in terraform.tfvars."
   type        = string
   default     = "23.26.0.0.0"
 }

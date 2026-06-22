@@ -9,7 +9,10 @@ ssh_public_key    = "ssh-ed25519 AAAA... your-key"
 # Changing this requires: DB stack Plan → Apply (Variables alone is not enough)
 allow_ssh_cidr    = "0.0.0.0/0"
 
-# ap-tokyo-1 26ai
+# 26ai requires db_home_version >= 23.26.0.0.0 (not 26.0.0.0.0).
+# List versions in YOUR region, then paste the latest 23.26+ string below:
+#   oci db version list --compartment-id <ocid> \
+#     --query "data[?starts_with(version, '23.26')].version | sort(@)" --output table
 db_home_version   = "23.26.0.0.0"
 
 # Hardcoded OCI-compliant demo passwords (defaults in variables.tf)
