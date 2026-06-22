@@ -4,6 +4,7 @@ import { useState, useMemo, useRef } from "react";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/GlassCard";
 import { columnPayloadForTable } from "@/lib/market-demo-payloads";
+import { alertIfWafBlocked, wafBlockErrorMessage } from "@/lib/waf-block-alert";
 import { wafMirrorUrl } from "@/lib/waf-query-mirror";
 
 interface LuxItem {
@@ -92,6 +93,14 @@ export default function MarketExplorerPage() {
       });
       clearTimeout(timeout);
 
+      if (seq !== searchSeqRef.current) return;
+
+      if (res.status === 403) {
+        alertIfWafBlocked(403);
+        setError(wafBlockErrorMessage(403));
+        return;
+      }
+
       let data: { rows?: LuxItem[]; error?: string; message?: string; code?: string };
       try {
         data = (await res.json()) as typeof data;
@@ -104,11 +113,7 @@ export default function MarketExplorerPage() {
       if (seq !== searchSeqRef.current) return;
 
       if (!res.ok) {
-        if (res.status === 403) {
-          window.alert("SQL injection detected by OCI WAF and blocked.");
-        }
-        const msg = data.message ?? (res.status === 403 ? "Blocked by OCI WAF" : `HTTP ${res.status}`);
-        setError(msg);
+        setError(wafBlockErrorMessage(res.status, `HTTP ${res.status}`, data.message));
         return;
       }
 

@@ -5,6 +5,7 @@ import { createSingleFlight } from "@/lib/single-flight";
 import { GlassCard } from "@/components/GlassCard";
 import { StatementGrid, type StatementRow } from "@/components/StatementGrid";
 import { ATTACK3_WAF_BYPASS_FALLBACK } from "@/lib/waf-bypass-demo-payloads";
+import { alertIfWafBlocked, WAF_BLOCK_INLINE_ERROR } from "@/lib/waf-block-alert";
 import { wafMirrorUrl } from "@/lib/waf-query-mirror";
 
 const DEMO_HINT = `Demo payload → 0 UNION SELECT TO_CHAR(id), username, password, role FROM users`;
@@ -28,6 +29,20 @@ export default function StatementPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ taxId }),
         });
+
+        if (res.status === 403) {
+          alertIfWafBlocked(403);
+          setError(WAF_BLOCK_INLINE_ERROR);
+          setRows([]);
+          return;
+        }
+
+        if (!res.ok) {
+          setError(`HTTP ${res.status}`);
+          setRows([]);
+          return;
+        }
+
         const data = await res.json() as { rows?: StatementRow[]; error?: string };
         if (data.error) {
           setError(data.error);
@@ -63,11 +78,15 @@ export default function StatementPage() {
               Tax Institution ID
             </label>
             <input
+              type="text"
+              name="tax-institution-id"
+              autoComplete="off"
+              spellCheck={false}
               value={taxId}
               onChange={(e) => setTaxId(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && void generate()}
               placeholder="Enter your Tax Institution ID…"
-              className="w-full rounded-lg px-4 py-2.5 text-sm text-slate-200 placeholder:text-slate-600 outline-none font-mono"
+              className="w-full h-11 rounded-lg px-4 py-2.5 text-sm text-slate-200 placeholder:text-slate-600 outline-none font-mono"
               style={{
                 background: "rgba(15,23,42,0.8)",
                 border: "1px solid rgba(244,201,93,0.2)",

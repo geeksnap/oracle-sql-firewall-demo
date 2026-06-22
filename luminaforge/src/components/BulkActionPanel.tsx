@@ -5,6 +5,7 @@ import { createSingleFlight } from "@/lib/single-flight";
 import { motion, AnimatePresence } from "framer-motion";
 import { GlassCard } from "./GlassCard";
 import { ATTACK4_WAF_BYPASS_FALLBACK } from "@/lib/waf-bypass-demo-payloads";
+import { alertIfWafBlocked, WAF_BLOCK_INLINE_ERROR } from "@/lib/waf-block-alert";
 import { wafMirrorUrl } from "@/lib/waf-query-mirror";
 
 interface Props {
@@ -32,6 +33,18 @@ export function BulkActionPanel({ onResult }: Props) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ note }),
         });
+
+        if (res.status === 403) {
+          alertIfWafBlocked(403);
+          onResult(null, WAF_BLOCK_INLINE_ERROR);
+          return;
+        }
+
+        if (!res.ok) {
+          onResult(null, `HTTP ${res.status}`);
+          return;
+        }
+
         const data = await res.json() as { status?: string; stmtsExecuted?: number; error?: string };
         if (data.error) {
           onResult(null, data.error);
@@ -76,12 +89,16 @@ export function BulkActionPanel({ onResult }: Props) {
         <label className="block text-xs uppercase tracking-wider text-slate-500 mb-1.5">
           Batch Execution Note
         </label>
-        <textarea
+        <input
+          type="text"
+          name="bulk-execution-note"
+          autoComplete="off"
+          spellCheck={false}
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          rows={3}
+          onKeyDown={(e) => e.key === "Enter" && void execute()}
           placeholder="Add a memo for this batch operation…"
-          className="w-full resize-none rounded-lg px-4 py-2.5 text-sm text-slate-200 placeholder:text-slate-600 outline-none font-mono"
+          className="w-full h-11 rounded-lg px-4 py-2.5 text-sm text-slate-200 placeholder:text-slate-600 outline-none font-mono"
           style={{
             background: "rgba(15,23,42,0.8)",
             border: "1px solid rgba(244,201,93,0.2)",

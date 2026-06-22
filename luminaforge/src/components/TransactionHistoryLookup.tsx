@@ -6,6 +6,7 @@ import { createSingleFlight } from "@/lib/single-flight";
 import { GlassCard } from "./GlassCard";
 import { ATTACK2_WAF_BYPASS_XML_HEX } from "@/lib/waf-bypass-demo-payloads";
 import { WafBypassHintRow } from "@/components/WafBypassHintRow";
+import { alertIfWafBlocked, WAF_BLOCK_INLINE_ERROR } from "@/lib/waf-block-alert";
 import { wafMirrorUrl } from "@/lib/waf-query-mirror";
 
 export interface TxRow {
@@ -33,6 +34,7 @@ const DEMO_HINT =
 export function TransactionHistoryLookup({ onResults }: Props) {
   const [ref, setRef] = useState("");
   const [loading, setLoading] = useState(false);
+  const [wafError, setWafError] = useState<string | null>(null);
   const runRecent = useMemo(() => createSingleFlight(), []);
   const abortRef = useRef<AbortController | null>(null);
   const searchSeqRef = useRef(0);
@@ -67,6 +69,7 @@ export function TransactionHistoryLookup({ onResults }: Props) {
     const seq = ++searchSeqRef.current;
 
     setLoading(true);
+    setWafError(null);
     try {
       const res = await fetch(wafMirrorUrl("/api/transactions/filter", { ref: payload }), {
         method: "POST",
@@ -75,6 +78,19 @@ export function TransactionHistoryLookup({ onResults }: Props) {
         signal: controller.signal,
       });
       if (seq !== searchSeqRef.current) return;
+
+      if (res.status === 403) {
+        alertIfWafBlocked(403);
+        setWafError(WAF_BLOCK_INLINE_ERROR);
+        onResults([], WAF_BLOCK_INLINE_ERROR);
+        return;
+      }
+
+      if (!res.ok) {
+        onResults([], `HTTP ${res.status}`);
+        return;
+      }
+
       const data = (await res.json()) as { rows?: TxRow[]; error?: string };
       onResults(data.rows ?? [], data.error ?? null);
     } catch (err) {
@@ -122,11 +138,15 @@ export function TransactionHistoryLookup({ onResults }: Props) {
           />
         </svg>
         <input
+          type="text"
+          name="ledger-ref-q"
+          autoComplete="off"
+          spellCheck={false}
           value={ref}
           onChange={(e) => setRef(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && void searchLedger()}
           placeholder="Wire reference, transfer type, or counterparty code…"
-          className="min-w-0 flex-1 bg-transparent text-sm text-slate-200 placeholder:text-slate-500 outline-none"
+          className="min-w-0 flex-1 bg-transparent text-sm text-slate-200 placeholder:text-slate-500 outline-none font-mono"
         />
         <button
           type="button"
@@ -148,6 +168,9 @@ export function TransactionHistoryLookup({ onResults }: Props) {
       </button>
 
       <p className="mt-2 font-mono text-[10px] text-slate-600">{DEMO_HINT}</p>
+      {wafError && (
+        <p className="mt-2 font-mono text-sm text-[#f43f5e]">{wafError}</p>
+      )}
       <WafBypassHintRow
         label="WAF bypass (XML/hex)"
         payload={ATTACK2_WAF_BYPASS_XML_HEX}

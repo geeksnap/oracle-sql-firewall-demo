@@ -40,7 +40,7 @@ export default function TransactionsPage() {
 
   function handleResults(r: TxRow[], err: string | null) {
     setError(err);
-    setRows(err ? DEFAULT_TX : r);
+    setRows(err ? [] : r);
     setSearched(true);
   }
 
@@ -87,7 +87,7 @@ export default function TransactionsPage() {
         {rows.length === 0 ? (
           <div className="py-6 text-center text-sm text-slate-500">
             <p>No transactions found.</p>
-            {searched && (
+            {searched && !error && (
               <p className="mt-2 font-mono text-[10px] text-slate-600">
                 Injection returned 0 rows — run{" "}
                 <span className="text-[#f4c95d]">luminaforge/scripts/reset-demo-data.sql</span>{" "}
