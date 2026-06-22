@@ -2,7 +2,7 @@
 
 **One page.** Deploy entirely from **OCI Console → Developer Services → Resource Manager**. No local `terraform apply`.
 
-| Time | ~15 min prep + **60–90 min** DB Apply job + **10–20 min** cloud-init after compute Apply |
+| Time | ~15 min prep + **60–90 min** DB Apply + **5–15 min** compute Apply (VM + LB + WAF) + **10–20 min** cloud-init |
 |------|-------------------------------------------------------------------------------------------|
 
 ```text
@@ -26,8 +26,9 @@ The **DB stack creates the entire network** automatically. You do **not** need a
 | DB subnet (private) | `sqlfw-demo-db-subnet` | `10.40.1.0/24` |
 | Internet gateway + route tables | yes | — |
 | **Service gateway** | yes — DB subnet → Object Storage (required for Base DB) | — |
-| Security lists | yes — **1521** (compute→DB), **22/3000/3001** (`allow_ssh_cidr`) | — |
-| **firewalld on compute VM** | cloud-init opens **3000/3001** (OCI rules alone are not enough) | — |
+| Security lists | yes — **1521** (compute→DB), **22/3000/3001/80** (`allow_ssh_cidr` + LB) | — |
+| **firewalld on compute VM** | cloud-init opens **3000/3001** (+ **80** when WAF enabled) | — |
+| **Load Balancer + WAF** | **compute stack** (`enable_waf = true`, default) — `sqlfw-demo-lb`, `demo-wap-firewall` | — |
 
 **Do not** use **Networking → Virtual Cloud Networks → VCN Wizard** before deploying. A wizard VCN will not be used by this Terraform and will cause confusion (wrong subnets, missing rules for ports 3000/3001 and 1521).
 
@@ -48,7 +49,7 @@ Browser access to the apps requires **both** layers to allow your IP:
 | Layer | Where | What to set |
 |-------|--------|-------------|
 | **OCI security list** | DB stack variable `allow_ssh_cidr` | Your public IP `/32`, or `0.0.0.0/0` for open demos |
-| **firewalld on VM** | cloud-init (automatic on new VMs) | Opens TCP 3000 and 3001 |
+| **firewalld on VM** | cloud-init (automatic on new VMs) | Opens TCP 3000, 3001, and **80** (when `enable_waf = true`) |
 
 Changing `allow_ssh_cidr` in the Console **Variables** tab does nothing until you run **Plan → Apply** on the **DB stack**.  
 If HTTP returns `000` or connection refused but SSH works, check firewalld on the VM:
@@ -56,21 +57,32 @@ If HTTP returns `000` or connection refused but SSH works, check firewalld on th
 ```bash
 ssh -i ~/.ssh/id_ed25519_sqlfw opc@$COMPUTE_IP \
   'sudo firewall-cmd --list-ports'
-# expect: 3000/tcp 3001/tcp
+# expect: 3000/tcp 3001/tcp  (and 80/tcp when WAF enabled)
 ```
 
 ---
 
-## What compute cloud-init installs
+## What compute Terraform + cloud-init provision
 
-After the compute stack Apply succeeds, cloud-init on the VM (~**10–20 min**):
+**During Step 3 Apply** (before cloud-init finishes), Terraform creates when `enable_waf = true` (default):
 
-1. Opens **firewalld** ports 3000 / 3001
+- Reserved public IP + flexible load balancer **`sqlfw-demo-lb`** (listener **:80**)
+- Backend set → compute reserved private IP **`:3001`**
+- WAF policy **`sqlfw-demo-waf-policy`** (SQLi JMESPath + OWASP rules)
+- WAF attachment **`demo-wap-firewall`**
+- Compute VM with `WAF_LB_URL` baked into `/root/sqlfw-bootstrap.env`
+
+Set `enable_waf = false` in compute stack Variables to skip LB/WAF (direct `:3001` only).
+
+**After Apply succeeds**, cloud-init on the VM runs (~**10–20 min**):
+
+1. Opens **firewalld** ports 3000 / 3001 (+ **80** when WAF enabled)
 2. Installs **Oracle Instant Client 19.31** (thick mode — required for OCI Base DB; thin mode fails **NJS-533**)
 3. Installs **Node.js 22**, clones GitHub, waits for DB listener on port 1521
 4. Runs `npm ci` + `npm run build` for both apps (with `ORACLE_CLIENT_LIBDIR` / `LD_LIBRARY_PATH`)
 5. Runs `scripts/oci-bootstrap-database.mjs` (schema, users, demo packages)
 6. Starts **systemd** services `aegis-vault` (:3000) and `luminaforge` (:3001)
+7. When WAF enabled: installs **nginx** on compute **:80** → redirects to **`luminaforge_waf_url`**
 
 **Repo on GitHub must include** (push to `main` before deploy):
 
@@ -316,16 +328,25 @@ db_stack_id     = "ocid1.ormstack.oc1....."    # REQUIRED — DB stack OCID from
 github_repo_url = "https://github.com/geeksnap/oracle-sql-firewall-demo.git"   # public repo
 # github_repo_url = "https://<TOKEN>@github.com/geeksnap/oracle-sql-firewall-demo.git"  # private only
 github_branch   = "main"
+enable_waf      = true    # default — LB + WAF + compute :80 redirect; set false for :3001-only demos
 ```
+
+**Terraform creates on Apply** (in addition to the compute VM):
+
+| Resource | Default name |
+|----------|----------------|
+| Load Balancer | `sqlfw-demo-lb` |
+| WAF policy | `sqlfw-demo-waf-policy` |
+| WAF attachment | `demo-wap-firewall` |
 
 > **`db_stack_id` is mandatory** in Resource Manager. Copy from **DB stack → Stack information → OCID** (starts with `ocid1.ormstack.`).  
 > Do **not** rely on `db_state_path` — the job runner has no `../db/terraform.tfstate`.
 
-**Run:** Plan → Apply (~2–5 min for VM creation).
+**Run:** Plan → Apply (**~5–15 min** — VM + reserved IPs + load balancer + WAF policy/attachment).
 
-> **Apply Succeeded ≠ apps ready.** Terraform creates the VM; **cloud-init** then installs Node, clones GitHub, bootstraps the DB, and starts systemd (**10–20 min**).
+> **Apply Succeeded ≠ apps ready.** Terraform provisions infrastructure; **cloud-init** then installs Node, clones GitHub, bootstraps the DB, starts systemd, and configures the WAF redirect (**10–20 min** more).
 
-**Stack → Outputs** — note `compute_public_ip`, `aegis_vault_url`, `luminaforge_url`, **`luminaforge_waf_url`** (LB + WAF entry).
+**Stack → Outputs** — note `compute_public_ip`, `aegis_vault_url`, `luminaforge_url`, **`luminaforge_waf_url`** (presenter WAF entry — use this for Attack Point demos on port 80).
 
 **Wait for bootstrap** (required before Step 4):
 

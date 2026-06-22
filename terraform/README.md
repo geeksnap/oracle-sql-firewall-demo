@@ -121,7 +121,7 @@ Each zip contains only that stack’s `.tf` files (no `terraform.tfvars`, no loc
 
 > **Do not** rely on `db_state_path` in Resource Manager — there is no `../db/terraform.tfstate` on the job runner. Set **`db_stack_id`** instead.
 
-3. **Plan** → **Apply**
+3. **Plan** → **Apply** (~**5–15 min** — VM + LB + WAF when `enable_waf = true`)
 4. **Outputs** → `compute_public_ip`, `aegis_vault_url`, `luminaforge_url`, **`luminaforge_waf_url`**
 5. SSH to compute (if needed): `ssh -i ~/.ssh/id_ed25519_sqlfw opc@<compute_public_ip>`
 6. Tail bootstrap: `sudo tail -f /var/log/sqlfw-install.log` until `[SUCCESS] Apps + DB schema ready`
@@ -486,7 +486,7 @@ Confirm the plan reads remote state from `../db/terraform.tfstate` and creates c
 terraform apply tfplan
 ```
 
-Compute VM creation is **~2–5 minutes**. App install + DB bootstrap runs via **cloud-init** (additional **10–20 minutes**).
+Compute VM creation is **~2–5 minutes**; with `enable_waf = true` (default), add **~3–10 minutes** for load balancer + WAF. App install + DB bootstrap runs via **cloud-init** (additional **10–20 minutes**).
 
 ### 3.1 What cloud-init does automatically
 
