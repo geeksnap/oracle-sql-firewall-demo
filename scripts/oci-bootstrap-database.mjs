@@ -217,6 +217,10 @@ async function main() {
             console.log("SKIP:", block.split("\n")[0].slice(0, 72), "(ORA-01749)");
             continue;
           }
+          if (err?.errorNum === 47630) {
+            console.log("SKIP:", block.split("\n")[0].slice(0, 72), "(ORA-47630 — no allow-list yet)");
+            continue;
+          }
           // Verification SELECT after bootstrap — optional
           if (err?.errorNum === 900 && /^\s*SELECT\b/i.test(block)) {
             console.log("SKIP: verify SELECT");

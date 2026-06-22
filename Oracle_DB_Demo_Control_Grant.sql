@@ -58,7 +58,8 @@ AS
       SYS.DBMS_SQL_FIREWALL.DISABLE_ALLOW_LIST(username => 'AEGIS_APP');
     EXCEPTION
       WHEN OTHERS THEN
-        IF SQLCODE NOT IN (-24247) THEN
+        -- -24247: allow-list already disabled; -47630: no allow-list row yet (fresh PDB)
+        IF SQLCODE NOT IN (-24247, -47630) THEN
           RAISE;
         END IF;
     END;
