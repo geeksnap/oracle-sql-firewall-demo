@@ -21,7 +21,7 @@ WAF_LB_URL="${WAF_LB_URL%/}"
 dnf install -y nginx
 
 cat >/etc/nginx/conf.d/sqlfw-waf-redirect.conf <<EOF
-# LuminaForge WAF entry — redirect compute :80 to Load Balancer (demo-wap-firewall)
+# LuminaForge WAF entry — redirect compute :80 to Load Balancer (demo-waf-firewall)
 server {
     listen 80 default_server;
     listen [::]:80 default_server;

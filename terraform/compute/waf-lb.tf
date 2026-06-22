@@ -1,6 +1,6 @@
 # =============================================================================
-# OCI Load Balancer + Web Application Firewall (WAP) for LuminaForge demo path
-# Matches manual stack: sqlfw-demo-lb, sqlfw-demo-waf-policy, demo-wap-firewall
+# OCI Load Balancer + Web Application Firewall (WAF) for LuminaForge demo path
+# Matches manual stack: sqlfw-demo-lb, sqlfw-demo-waf-policy, demo-waf-firewall
 # =============================================================================
 
 locals {
@@ -170,7 +170,7 @@ resource "oci_waf_web_app_firewall_policy" "demo" {
 resource "oci_waf_web_app_firewall" "demo" {
   count                      = var.enable_waf ? 1 : 0
   compartment_id             = var.compartment_id
-  display_name               = "demo-wap-firewall"
+  display_name               = "demo-waf-firewall"
   backend_type               = "LOAD_BALANCER"
   load_balancer_id           = oci_load_balancer_load_balancer.demo[0].id
   web_app_firewall_policy_id = oci_waf_web_app_firewall_policy.demo[0].id

@@ -82,10 +82,10 @@ fi
 
 echo
 if [[ -n "$WAF_LB_URL" ]]; then
-  echo "OCI WAP / WAF (LB)   ${WAF_LB_URL}/"
+  echo "OCI WAF (LB)         ${WAF_LB_URL}/"
   echo "                     LuminaForge attack demos — canonical SQLi blocked here (403)"
 else
-  echo "OCI WAP / WAF (LB)   (not configured)"
+  echo "OCI WAF (LB)         (not configured)"
   echo "                     Set WAF_LB_URL in ${BOOTSTRAP_ENV} or enable_waf on compute stack"
 fi
 

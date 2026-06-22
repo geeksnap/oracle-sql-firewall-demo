@@ -94,7 +94,7 @@ variable "override_sys_password" {
 }
 
 variable "enable_waf" {
-  description = "Provision OCI Load Balancer + WAF (sqlfw-demo-lb / demo-wap-firewall) for LuminaForge edge demo path"
+  description = "Provision OCI Load Balancer + WAF (sqlfw-demo-lb / demo-waf-firewall) for LuminaForge edge demo path"
   type        = bool
   default     = true
 }

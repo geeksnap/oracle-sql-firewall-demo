@@ -28,7 +28,7 @@ The **DB stack creates the entire network** automatically. You do **not** need a
 | **Service gateway** | yes — DB subnet → Object Storage (required for Base DB) | — |
 | Security lists | yes — **1521** (compute→DB), **22/3000/3001/80** (`allow_ssh_cidr` + LB) | — |
 | **firewalld on compute VM** | cloud-init opens **3000/3001** (+ **80** when WAF enabled) | — |
-| **Load Balancer + WAF** | **compute stack** (`enable_waf = true`, default) — `sqlfw-demo-lb`, `demo-wap-firewall` | — |
+| **Load Balancer + WAF** | **compute stack** (`enable_waf = true`, default) — `sqlfw-demo-lb`, `demo-waf-firewall` | — |
 
 **Do not** use **Networking → Virtual Cloud Networks → VCN Wizard** before deploying. A wizard VCN will not be used by this Terraform and will cause confusion (wrong subnets, missing rules for ports 3000/3001 and 1521).
 
@@ -69,7 +69,7 @@ ssh -i ~/.ssh/id_ed25519_sqlfw opc@$COMPUTE_IP \
 - Reserved public IP + flexible load balancer **`sqlfw-demo-lb`** (listener **:80**)
 - Backend set → compute reserved private IP **`:3001`**
 - WAF policy **`sqlfw-demo-waf-policy`** (SQLi JMESPath + OWASP rules)
-- WAF attachment **`demo-wap-firewall`**
+- WAF attachment **`demo-waf-firewall`**
 - Compute VM with `WAF_LB_URL` baked into `/root/sqlfw-bootstrap.env`
 
 Set `enable_waf = false` in compute stack Variables to skip LB/WAF (direct `:3001` only).
@@ -337,7 +337,7 @@ enable_waf      = true    # default — LB + WAF + compute :80 redirect; set fal
 |----------|----------------|
 | Load Balancer | `sqlfw-demo-lb` |
 | WAF policy | `sqlfw-demo-waf-policy` |
-| WAF attachment | `demo-wap-firewall` |
+| WAF attachment | `demo-waf-firewall` |
 
 > **`db_stack_id` is mandatory** in Resource Manager. Copy from **DB stack → Stack information → OCID** (starts with `ocid1.ormstack.`).  
 > Do **not** rely on `db_state_path` — the job runner has no `../db/terraform.tfstate`.
@@ -440,12 +440,12 @@ Expect: `[SUCCESS] Apps + DB schema ready`, both services `active`, HTTP **200**
 |-----|-----|---------------------|
 | **Aegis Vault** | `http://<compute_public_ip>:3000` | SOC dashboard, sidebar (Dashboard, Demo Control, …) |
 | **LuminaForge** (direct bypass) | `http://<compute_public_ip>:3001` | Demo fintech UI, nav tabs |
-| **LuminaForge via WAF** | `http://<lb_public_ip>/` | **Terraform output** `luminaforge_waf_url` → WAF `demo-wap-firewall` → LB `sqlfw-demo-lb` → backend `:3001` |
+| **LuminaForge via WAF** | `http://<lb_public_ip>/` | **Terraform output** `luminaforge_waf_url` → WAF `demo-waf-firewall` → LB `sqlfw-demo-lb` → backend `:3001` |
 | **Compute :80 shortcut** | `http://<compute_public_ip>/` | Redirects to LB (configured automatically by cloud-init when `enable_waf = true`) |
 
 **WAF troubleshooting:** LuminaForge does **not** listen on port 80 on the compute VM. Backend set uses the compute **reserved private IP** (`:3001`). DB stack security list already allows **`compute_subnet_cidr` → TCP 3001** for LB health checks.
 
-### 5B-waf — OCI WAP policy (provisioned by compute Terraform)
+### 5B-waf — OCI WAF policy (provisioned by compute Terraform)
 
 The compute stack creates the same resources as the manual older demo stack:
 
@@ -453,7 +453,7 @@ The compute stack creates the same resources as the manual older demo stack:
 |----------|----------------|
 | Load Balancer | `${project_prefix}-lb` (default `sqlfw-demo-lb`) |
 | WAF policy | `${project_prefix}-waf-policy` (default `sqlfw-demo-waf-policy`) |
-| WAF attachment | `demo-wap-firewall` |
+| WAF attachment | `demo-waf-firewall` |
 | Block action | `Block SQLi 403` (HTTP 403 JSON) |
 
 **Traffic:** Internet → **LB :80** (WAF) → compute **private IP :3001**. LuminaForge mirrors attack fields into the URL query string (`waf-query-mirror.ts`) so WAF access-control rules can inspect POST bodies.

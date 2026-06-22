@@ -507,7 +507,7 @@ On first boot, `/usr/local/bin/sqlfw-install-apps.sh`:
 - Reserved public IP + flexible load balancer `${project_prefix}-lb`
 - Backend set → compute private IP `:3001`
 - WAF policy `${project_prefix}-waf-policy` with SQLi JMESPath + OWASP protection rules
-- WAF attachment `demo-wap-firewall`
+- WAF attachment `demo-waf-firewall`
 
 ### 3.2 Monitor bootstrap
 
@@ -793,7 +793,7 @@ sqlplus "sys/<sys_password>@<db_private_ip>:1521/<pdb_service_name> as sysdba"
 |-------------|------|-----|--------|
 | **Aegis Vault** (SOC dashboard) | **3000** | `http://<compute_public_ip>:3000` | `aegis_vault_url` |
 | **LuminaForge** (direct / bypass WAF) | **3001** | `http://<compute_public_ip>:3001` | `luminaforge_url` |
-| **LuminaForge via WAF** | **80** | `http://<lb_public_ip>/` | Compute output `luminaforge_waf_url` — LB + WAF `demo-wap-firewall` |
+| **LuminaForge via WAF** | **80** | `http://<lb_public_ip>/` | Compute output `luminaforge_waf_url` — LB + WAF `demo-waf-firewall` |
 | **Compute :80 shortcut** | **80** | `http://<compute_public_ip>/` | Redirects to LB (cloud-init when `enable_waf = true`) |
 
 **WAF path:** Internet → **LB :80** (`sqlfw-demo-waf-policy`) → backend **`<compute_private_ip>:3001`**. Use `luminaforge_waf_url` from compute stack outputs.
