@@ -578,6 +578,12 @@ Stop apps first if bootstrap will drop users (`ORA-01940`):
 sudo systemctl stop aegis-vault luminaforge
 ```
 
+Pull latest code **as `odb_sec`** (repo is owned by that user — `sudo git pull` fails with *dubious ownership*):
+
+```bash
+sudo -u odb_sec git -C /home/odb_sec/apps/oracle-sql-firewall-demo pull origin main
+```
+
 ```bash
 sudo bash -c 'source /root/sqlfw-bootstrap.env && \
   cd /home/odb_sec/apps/oracle-sql-firewall-demo && \
@@ -676,6 +682,7 @@ Destroy **compute stack** first, then **DB stack** (each stack → **Destroy** j
 | Demo Control ORA errors / invalid package | Bootstrap incomplete — stop apps, re-run bootstrap (5C Option 2); check `AEGIS_DEMO_CONTROL` **VALID** |
 | Bootstrap **ORA-47630** (`allow list … does not exist`) | Fresh PDB has no `AEGIS_APP` allow-list yet; `configure_aegis_soc` must ignore this. Pull latest `Oracle_DB_Demo_Control_Grant.sql` and re-run bootstrap (5C Option 2) |
 | Bootstrap **ORA-01920** (`user name … conflicts`) | Partial bootstrap already created `AEGIS_APP` / `luminaforge`. Pull latest `oci-bootstrap-database.mjs` (syncs password + skips existing objects) and re-run bootstrap (5C Option 2) |
+| `git pull` **dubious ownership** on VM | Repo owned by `odb_sec` — use `sudo -u odb_sec git -C /home/odb_sec/apps/oracle-sql-firewall-demo pull origin main` before bootstrap |
 | LuminaForge Market search fails | Same as NJS-533 — thick mode + rebuild |
 | RM job permission denied | Add `manage orm-stacks` + `manage orm-jobs` (+ resource-family policies) |
 | VCN / subnet overlap error | Change `vcn_cidr` / subnet CIDRs; do not use VCN Wizard |

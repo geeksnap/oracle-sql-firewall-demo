@@ -193,12 +193,20 @@ async function handleBootstrapError(connection, err, block, appPassword) {
     const userMatch = block.match(/^CREATE\s+USER\s+(\S+)/i);
     if (userMatch) {
       const user = userMatch[1];
-      await connection.execute(
-        `ALTER USER ${user} IDENTIFIED BY ${quoteOraclePassword(appPassword)}`,
-        [],
-        { autoCommit: true },
-      );
-      console.log("SKIP+ALTER:", user, "(ORA-01920 — user exists, password synced)");
+      try {
+        await connection.execute(
+          `ALTER USER ${user} IDENTIFIED BY ${quoteOraclePassword(appPassword)}`,
+          [],
+          { autoCommit: true },
+        );
+        console.log("SKIP+ALTER:", user, "(ORA-01920 — user exists, password synced)");
+      } catch (alterErr) {
+        if (alterErr?.errorNum === 28007) {
+          console.log("SKIP:", user, "(ORA-01920 — user exists, password already current)");
+        } else {
+          throw alterErr;
+        }
+      }
       return true;
     }
   }
