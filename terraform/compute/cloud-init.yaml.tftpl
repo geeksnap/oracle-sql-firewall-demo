@@ -114,6 +114,8 @@ write_files:
       systemctl start luminaforge.service aegis-vault.service
       systemctl is-active luminaforge.service aegis-vault.service
 
+      install -m 755 "$REPO_DIR/scripts/show_config.sh" /usr/local/bin/show_config.sh
+
       if [ -n "$${WAF_LB_URL:-}" ]; then
         echo "Configuring compute :80 redirect to WAF load balancer ($${WAF_LB_URL})..."
         dnf install -y nginx
