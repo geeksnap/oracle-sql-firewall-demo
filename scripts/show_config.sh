@@ -27,8 +27,8 @@ load_bootstrap_env() {
 
 get_public_ip() {
   local meta ip
-  meta=$(curl -sf -H "Authorization: Bearer Oracle" http://169.254.169.254/opc/v1/vnics/ 2>/dev/null) || true
-  if [[ -n "$meta" ]]; then
+  for endpoint in opc/v1/vnics/ opc/v2/vnics/; do
+    meta=$(curl -sf -H "Authorization: Bearer Oracle" "http://169.254.169.254/${endpoint}" 2>/dev/null) || continue
     if command -v jq >/dev/null 2>&1; then
       ip=$(echo "$meta" | jq -r '.[0].publicIp // empty')
     else
@@ -38,6 +38,12 @@ get_public_ip() {
       echo "$ip"
       return 0
     fi
+  done
+  # Some shapes omit publicIp in vnic metadata; use egress IP as fallback.
+  ip=$(curl -sf --max-time 3 https://checkip.amazonaws.com 2>/dev/null | tr -d '[:space:]') || true
+  if [[ -n "$ip" ]]; then
+    echo "$ip"
+    return 0
   fi
   return 1
 }
