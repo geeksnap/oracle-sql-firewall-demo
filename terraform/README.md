@@ -90,7 +90,7 @@ Each zip contains only that stack’s `.tf` files (no `terraform.tfvars`, no loc
 | `region` | `ap-singapore-1` |
 | `compartment_id` | `ocid1.compartment.oc1..…` |
 | `ssh_public_key` | Full line from `~/.ssh/id_ed25519_sqlfw.pub` |
-| `db_home_version` | **26ai** version string for your region |
+| `db_home_version` | **26ai** DB home version for your region (initial: `23.26.0.0.0`) |
 | `allow_ssh_cidr` | Your public IP `/32` (or `0.0.0.0/0`) — controls SSH + app ports 3000/3001; **Apply** after change |
 | `pdb_name` | `SQLFWPDB1` (optional) |
 | `project_prefix` | `sqlfw-demo` (optional) |
@@ -274,7 +274,7 @@ Paste into **both** files:
 
 ### 1.4 Oracle DB home version (26ai)
 
-The default in code is `23.0.0.0` — **you must set the latest 26ai version** available in your region.
+Oracle AI Database **26ai** initial release uses DB home version **`23.26.0.0.0`** (not `26.0.0.0.0`). The Terraform default is `23.26.0.0.0` — confirm the exact string in your region before apply.
 
 **Console:** Oracle Base Database → Create → note **Database version** list.
 
@@ -283,14 +283,14 @@ The default in code is `23.0.0.0` — **you must set the latest 26ai version** a
 ```bash
 oci db version list \
   --compartment-id <your-compartment-ocid> \
-  --query "data[?contains(\"version\",'26')].version" \
+  --query "data[?contains(\"version\",'23.26') || contains(\"version\",'26')].version" \
   --output table
 ```
 
 Set in `terraform/db/terraform.tfvars`:
 
 ```hcl
-db_home_version = "26.x.x.x.x"   # exact string from Console/CLI
+db_home_version = "23.26.0.0.0"   # 26ai initial — exact string from Console/CLI
 ```
 
 ### 1.5 Presenter network access (security lists)
@@ -347,7 +347,7 @@ project_prefix = "sqlfw-demo"    # must match in BOTH stacks if you change it
 **DB only** (`terraform/db/terraform.tfvars`):
 
 ```hcl
-db_home_version = "26.x.x.x.x"
+db_home_version = "23.26.0.0.0"
 pdb_name        = "SQLFWPDB1"
 allow_ssh_cidr  = "YOUR.IP/32"
 ```
@@ -370,7 +370,7 @@ Passwords (`sys_password`, `app_db_password`) are **optional** — omit to auto-
 - [ ] `region` identical in **both** files and matches OCI config
 - [ ] `project_prefix` identical in **both** files (default `sqlfw-demo`)
 - [ ] `ssh_public_key` in **both** files (same key)
-- [ ] `db_home_version` set to **26ai** for your region
+- [ ] `db_home_version` set to **26ai** for your region (initial: `23.26.0.0.0`)
 - [ ] `allow_ssh_cidr` set to presenter IP (or acceptable CIDR)
 - [ ] GitHub PAT in `github_repo_url` if repo is private
 - [ ] `terraform.tfvars` created from `.example` in **both** folders (not committed)
@@ -550,7 +550,7 @@ Compute stack reads DB outputs via:
 | `compartment_id` | Yes | OCI compartment OCID |
 | `region` | Yes | OCI region |
 | `ssh_public_key` | Yes | SSH public key for DB host |
-| `db_home_version` | Yes | Oracle DB home — use **26ai** in your region |
+| `db_home_version` | Yes | Oracle DB home — **26ai** initial release: `23.26.0.0.0` |
 | `allow_ssh_cidr` | Recommended | CIDR for SSH + app ports **3000/3001** on compute |
 | `pdb_name` | No | PDB name (default `SQLFWPDB1`) |
 | `project_prefix` | No | Resource name prefix (default `sqlfw-demo`) |
@@ -590,7 +590,7 @@ cd ../db && terraform destroy
 | `Error: 401-NotAuthenticated` | Fix `~/.oci/config`, API key, clock skew |
 | `Error: 403-NotAuthorized` | Add IAM policy for compartment |
 | DB apply slow | Normal; wait for **AVAILABLE** |
-| `db_home_version` invalid | Use **`26.0.0.0.0`** for ap-tokyo-1 26ai; or `oci db version list` for your region |
+| `db_home_version` invalid | Use **`23.26.0.0.0`** for 26ai initial release; or `oci db version list` for your region |
 | Cloud-init failed | `sudo cat /var/log/sqlfw-install.log` on compute |
 | DB listener timeout | Confirm DB **AVAILABLE**; security list allows 1521 from compute subnet |
 | Bootstrap ORA errors | Stop apps; re-run bootstrap with env from `/root/sqlfw-bootstrap.env` (include `ORACLE_CLIENT_LIBDIR`) |

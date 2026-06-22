@@ -86,7 +86,7 @@ After the compute stack Apply succeeds, cloud-init on the VM (~**10–20 min**):
 | **Console region** | Select target region (top-right) — must match `region` variable in both stacks |
 | OCI compartment OCID | **Identity → Compartments** → Copy OCID (used as `compartment_id` variable) |
 | SSH key | `ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_sqlfw -N ""` → `cat ~/.ssh/id_ed25519_sqlfw.pub` |
-| 26ai DB version | **Base Database → Create** → note version, or `oci db version list --compartment-id <ocid>` |
+| 26ai DB version | Initial DB home **`23.26.0.0.0`** — **Base Database → Create** → note version, or `oci db version list --compartment-id <ocid>` |
 | Your public IP | `allow_ssh_cidr = "x.x.x.x/32"` on **DB stack** — must **Apply** after change (opens SSH + **3000/3001**) |
 | **GitHub repo** | **Push latest `main`** — compute VM clones GitHub (zip has no app code). **Public repo** = no PAT |
 | IAM — resources | `manage database-family`, `instance-family`, `virtual-network-family` in target compartment |
@@ -134,7 +134,7 @@ Each zip has `.tf` files at the **root** (no `.terraform/`, no `terraform.tfvars
 region          = "ap-singapore-1"              # same as Console region
 compartment_id  = "ocid1.compartment.oc1....."  # where VCN + DB are created
 ssh_public_key  = "ssh-ed25519 AAAA... sqlfw"   # full single-line .pub
-db_home_version = "26.0.0.0.0"                  # ap-tokyo-1 26ai — use exact string from error/Console
+db_home_version = "23.26.0.0.0"                 # 26ai initial DB home — use exact string from Console/CLI in your region
 allow_ssh_cidr  = "YOUR.PUBLIC.IP/32"   # or "0.0.0.0/0" for open demos — Apply required after change
 pdb_name        = "SQLFWPDB1"
 project_prefix  = "sqlfw-demo"
@@ -625,7 +625,7 @@ Destroy **compute stack** first, then **DB stack** (each stack → **Destroy** j
 | Apply OK but apps down | Wait 10–20 min; `sudo tail -f /var/log/sqlfw-install.log` |
 | `Permission denied` on `/var/log/sqlfw-install.log` | Use `sudo bash -c '.../sqlfw-install-apps.sh >> /var/log/sqlfw-install.log 2>&1'` — not `sudo cmd >> log` |
 | Compute **plan** fails on remote state | Set **`db_stack_id`** to DB stack OCID (`ocid1.ormstack...`); DB stack Apply must **Succeeded** first |
-| `db_home_version` invalid / 400 InvalidParameter | Set **`26.0.0.0.0`** for ap-tokyo-1 26ai (not `23.0.0.0` or placeholder) |
+| `db_home_version` invalid / 400 InvalidParameter | Set **`23.26.0.0.0`** for 26ai initial release (not `26.0.0.0.0`, `23.0.0.0`, or placeholder) |
 | Password error | Delete password vars; defaults: `"DbAdm12_Ab-cdXy"` / `"AppDb34_Cd-efGh"` (no `sys` / `Oracle`) |
 | Object Storage / subnet error | Upload latest zip (service gateway + security list egress); re-Apply DB stack |
 | Git clone fails on VM | Public repo URL without token, or PAT in `github_repo_url`; update `/root/sqlfw-bootstrap.env` and re-run install |

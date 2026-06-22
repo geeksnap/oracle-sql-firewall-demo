@@ -52,9 +52,9 @@ variable "db_data_storage_gb" {
 }
 
 variable "db_home_version" {
-  description = "Oracle DB home version. Must match an exact string from ListDbVersions / Base Database Create in YOUR region (e.g. ap-tokyo-1: 26.0.0.0.0)."
+  description = "Oracle DB home version. Must match an exact string from ListDbVersions / Base Database Create in YOUR region (26ai initial release: 23.26.0.0.0)."
   type        = string
-  default     = "26.0.0.0.0"
+  default     = "23.26.0.0.0"
 }
 
 variable "db_edition" {

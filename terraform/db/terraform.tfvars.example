@@ -10,7 +10,7 @@ ssh_public_key    = "ssh-ed25519 AAAA... your-key"
 allow_ssh_cidr    = "0.0.0.0/0"
 
 # ap-tokyo-1 26ai
-db_home_version   = "26.0.0.0.0"
+db_home_version   = "23.26.0.0.0"
 
 # Hardcoded OCI-compliant demo passwords (defaults in variables.tf)
 sys_password      = "DbAdm12_Ab-cdXy"
