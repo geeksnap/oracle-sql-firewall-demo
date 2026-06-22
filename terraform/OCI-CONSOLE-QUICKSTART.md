@@ -7,6 +7,7 @@
 
 ```text
 Browser → Compute VM (:3000 Aegis, :3001 LuminaForge) → Base DB 26ai (PDB)
+         └── LuminaForge WAF path: Internet → LB :80 (WAF) → compute :3001
          └── private VCN (created by DB stack — do not pre-create)
 ```
 
@@ -89,7 +90,7 @@ After the compute stack Apply succeeds, cloud-init on the VM (~**10–20 min**):
 | 26ai DB version | Minimum **`23.26.0.0.0`** — run CLI in [Check 26ai DB home version](#check-26ai-db-home-version-before-db-stack) below |
 | Your public IP | `allow_ssh_cidr = "x.x.x.x/32"` on **DB stack** — must **Apply** after change (opens SSH + **3000/3001**) |
 | **GitHub repo** | **Push latest `main`** — compute VM clones GitHub (zip has no app code). **Public repo** = no PAT |
-| IAM — resources | `manage database-family`, `instance-family`, `virtual-network-family` in target compartment |
+| IAM — resources | `manage database-family`, `instance-family`, `virtual-network-family`, `load-balancers`, `waf-family` in target compartment |
 | IAM — Resource Manager | `manage orm-stacks`, `manage orm-jobs` (or `manage stacks` / `manage jobs`) in compartment where stacks live |
 | **VCN / networking** | **Nothing to create manually** — DB stack provisions VCN + subnets (see [Networking](#networking--vcn-is-included-do-not-use-vcn-wizard)) |
 
@@ -324,7 +325,7 @@ github_branch   = "main"
 
 > **Apply Succeeded ≠ apps ready.** Terraform creates the VM; **cloud-init** then installs Node, clones GitHub, bootstraps the DB, and starts systemd (**10–20 min**).
 
-**Stack → Outputs** — note `compute_public_ip`, `aegis_vault_url`, `luminaforge_url`.
+**Stack → Outputs** — note `compute_public_ip`, `aegis_vault_url`, `luminaforge_url`, **`luminaforge_waf_url`** (LB + WAF entry).
 
 **Wait for bootstrap** (required before Step 4):
 
@@ -418,39 +419,49 @@ Expect: `[SUCCESS] Apps + DB schema ready`, both services `active`, HTTP **200**
 |-----|-----|---------------------|
 | **Aegis Vault** | `http://<compute_public_ip>:3000` | SOC dashboard, sidebar (Dashboard, Demo Control, …) |
 | **LuminaForge** (direct bypass) | `http://<compute_public_ip>:3001` | Demo fintech UI, nav tabs |
-| **LuminaForge via WAF** | `http://<lb_public_ip>/` | WAF `demo-wap-firewall` → LB `sqlfw-demo-lb` → backend `:3001` |
-| **Compute :80 shortcut** | `http://<compute_public_ip>/` | Redirects to LB (run `scripts/setup-waf-port80-redirect.sh` on VM) |
+| **LuminaForge via WAF** | `http://<lb_public_ip>/` | **Terraform output** `luminaforge_waf_url` → WAF `demo-wap-firewall` → LB `sqlfw-demo-lb` → backend `:3001` |
+| **Compute :80 shortcut** | `http://<compute_public_ip>/` | Redirects to LB (configured automatically by cloud-init when `enable_waf = true`) |
 
-**WAF troubleshooting:** LuminaForge does **not** listen on port 80 on the compute VM. Backend set must use the compute **private** IP (`10.40.0.x:3001`). DB stack security list must allow **`compute_subnet_cidr` → TCP 3001** for LB health checks.
+**WAF troubleshooting:** LuminaForge does **not** listen on port 80 on the compute VM. Backend set uses the compute **reserved private IP** (`:3001`). DB stack security list already allows **`compute_subnet_cidr` → TCP 3001** for LB health checks.
 
-### 5B-waf — OCI WAP policy (`sqlfw-demo-waf-policy`)
+### 5B-waf — OCI WAP policy (provisioned by compute Terraform)
 
-| Resource | Name |
-|----------|------|
-| WAF policy | `sqlfw-demo-waf-policy` |
-| WAF attachment | `demo-wap-firewall` → Load Balancer `sqlfw-demo-lb` |
+The compute stack creates the same resources as the manual older demo stack:
+
+| Resource | Terraform name |
+|----------|----------------|
+| Load Balancer | `${project_prefix}-lb` (default `sqlfw-demo-lb`) |
+| WAF policy | `${project_prefix}-waf-policy` (default `sqlfw-demo-waf-policy`) |
+| WAF attachment | `demo-wap-firewall` |
 | Block action | `Block SQLi 403` (HTTP 403 JSON) |
 
 **Traffic:** Internet → **LB :80** (WAF) → compute **private IP :3001**. LuminaForge mirrors attack fields into the URL query string (`waf-query-mirror.ts`) so WAF access-control rules can inspect POST bodies.
 
-Policy JSON artifacts (apply with OCI CLI after creating the `Block SQLi 403` action in Console or API):
+Policy rules are loaded from `terraform/compute/waf/` (same JSON as `terraform/waf-request-*.json`).
 
-- `terraform/waf-request-access-control-sqli.json` — blocks all 4 demo SQLi patterns in the query string
-- `terraform/waf-request-protection-sqli.json` — request protection rule `block-sqli-luminaforge` (body inspection + SQLi capabilities)
+**Compute stack variable** (optional):
+
+```hcl
+enable_waf = true   # default — set false to skip LB/WAF (direct :3001 only)
+```
+
+**Re-deploying an existing compute stack** without WAF: first Apply with this change may **replace the compute instance** (reserved private IP for LB backend). Plan carefully; destroy/recreate compute is safest for a clean demo.
+
+**Manual policy update** (only if you edit JSON and need to refresh without full stack replace):
 
 ```bash
 export SUPPRESS_LABEL_WARNING=True
-WAF_POLICY=<web_app_firewall_policy_ocid>
+WAF_POLICY=<web_app_firewall_policy_ocid>   # compute stack output waf_policy_id
 ETAG=$(oci waf web-app-firewall-policy get --web-app-firewall-policy-id "$WAF_POLICY" --query 'etag' --raw-output)
 
 oci waf web-app-firewall-policy update \
   --web-app-firewall-policy-id "$WAF_POLICY" \
-  --request-access-control file://terraform/waf-request-access-control-sqli.json \
-  --request-protection file://terraform/waf-request-protection-sqli.json \
+  --request-access-control file://terraform/compute/waf/waf-request-access-control-sqli.json \
+  --request-protection file://terraform/compute/waf/waf-request-protection-sqli.json \
   --if-match "$ETAG" --force
 ```
 
-**One-time compute redirect** (presenters opening compute IP on port 80):
+**Legacy manual redirect** (only if cloud-init ran before WAF was added):
 
 ```bash
 WAF_LB_URL=http://<lb_public_ip> sudo -E bash scripts/setup-waf-port80-redirect.sh
@@ -638,6 +649,8 @@ ssh opc@$COMPUTE_IP 'sudo cat /home/odb_sec/apps/oracle-sql-firewall-demo/lumina
 | 9 | LuminaForge `user_tables` count > 0 | ☐ |
 | 10 | Demo Control **Initialize default demo policy** OK | ☐ |
 | 11 | Violations visible in Aegis after LuminaForge traffic | ☐ |
+| 12 | `luminaforge_waf_url` output set; LB + WAF **ACTIVE** in Console | ☐ |
+| 13 | WAF demo: `' OR '1'='1` on LB URL → **403** + browser alert | ☐ |
 
 ---
 
@@ -646,6 +659,7 @@ ssh opc@$COMPUTE_IP 'sudo cat /home/odb_sec/apps/oracle-sql-firewall-demo/lumina
 | Change type | What to do |
 |-------------|------------|
 | **Terraform `.tf` / cloud-init** | `./package-stacks.sh` → re-upload zip → **Plan → Apply** on affected stack |
+| **WAF policy JSON only** | Edit `terraform/compute/waf/*.json` → re-Apply compute stack (or `oci waf web-app-firewall-policy update` with `waf_policy_id` output) |
 | **`allow_ssh_cidr` only** | Update DB stack Variables → **Plan → Apply** on **DB stack** (not compute) |
 | **App code on GitHub** | Push to `main` → re-run install script on VM (or recreate compute instance) |
 | **Private → public repo** | Remove token from `github_repo_url`; update `/root/sqlfw-bootstrap.env`; re-run install script |

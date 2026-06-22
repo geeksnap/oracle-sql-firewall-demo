@@ -5,6 +5,10 @@
 # LuminaForge listens on :3001 only. Presenters often open the compute public
 # IP on port 80; without this redirect that fails. Direct bypass stays :3001.
 #
+# New Terraform compute stacks configure this automatically via cloud-init when
+# enable_waf = true. Use this script only for legacy VMs deployed before WAF
+# was added to the compute stack.
+#
 # Usage (on compute VM as root):
 #   WAF_LB_URL=http://168.110.61.146 sudo -E bash scripts/setup-waf-port80-redirect.sh
 # =============================================================================

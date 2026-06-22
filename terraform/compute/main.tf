@@ -57,6 +57,8 @@ locals {
   )
   compute_subnet_id = local.db_state.outputs.compute_subnet_id
   vcn_id            = local.db_state.outputs.vcn_id
+
+  compute_private_ip = var.enable_waf ? oci_core_private_ip.app[0].ip_address : null
 }
 
 resource "oci_core_instance" "apps" {
@@ -79,6 +81,7 @@ resource "oci_core_instance" "apps" {
     assign_public_ip = true
     subnet_id        = local.compute_subnet_id
     display_name     = "${var.project_prefix}-apps-vnic"
+    private_ip       = local.compute_private_ip
   }
 
   metadata = {
@@ -92,8 +95,13 @@ resource "oci_core_instance" "apps" {
       app_db_password_b64      = base64encode(local.app_db_password)
       sys_password_b64         = base64encode(local.sys_password)
       project_prefix           = var.project_prefix
+      waf_lb_url               = local.waf_lb_url
     }))
   }
+
+  depends_on = var.enable_waf ? [
+    oci_waf_web_app_firewall.demo,
+  ] : []
 
   freeform_tags = {
     "Project" = "oracle-sql-firewall-demo"

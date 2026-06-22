@@ -92,3 +92,15 @@ variable "override_sys_password" {
   sensitive = true
   default   = null
 }
+
+variable "enable_waf" {
+  description = "Provision OCI Load Balancer + WAF (sqlfw-demo-lb / demo-wap-firewall) for LuminaForge edge demo path"
+  type        = bool
+  default     = true
+}
+
+variable "load_balancer_bandwidth_mbps" {
+  description = "Flexible load balancer bandwidth (Mbps) for the WAF entry point"
+  type        = number
+  default     = 10
+}

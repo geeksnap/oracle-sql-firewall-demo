@@ -17,3 +17,6 @@ db_stack_id = "ocid1.ormstack.oc1..aaaaaaaaexample"
 
 # --- Local CLI only — leave db_stack_id unset and use path after `terraform apply` in ../db
 # db_state_path = "../db/terraform.tfstate"
+
+# OCI WAF + Load Balancer for LuminaForge edge demo (default true)
+enable_waf = true

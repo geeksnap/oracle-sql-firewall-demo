@@ -115,17 +115,18 @@ Each zip contains only that stack’s `.tf` files (no `terraform.tfvars`, no loc
 | **`db_stack_id`** | **OCID of DB stack from RM-2** (required for Console) |
 | `github_repo_url` | `https://github.com/<org>/oracle-sql-firewall-demo.git` (public) or `https://<TOKEN>@github.com/...` (private) |
 | `github_branch` | `main` |
+| `enable_waf` | `true` (default) — provisions LB + WAF + compute :80 redirect |
 
 > Push latest code to GitHub before deploy — especially `scripts/oci-bootstrap-database.mjs`, thick-mode `pool.ts`, and `serverExternalPackages: ["oracledb"]` in `next.config.ts`.
 
 > **Do not** rely on `db_state_path` in Resource Manager — there is no `../db/terraform.tfstate` on the job runner. Set **`db_stack_id`** instead.
 
 3. **Plan** → **Apply**
-4. **Outputs** → `compute_public_ip`, `aegis_vault_url`, `luminaforge_url`
+4. **Outputs** → `compute_public_ip`, `aegis_vault_url`, `luminaforge_url`, **`luminaforge_waf_url`**
 5. SSH to compute (if needed): `ssh -i ~/.ssh/id_ed25519_sqlfw opc@<compute_public_ip>`
 6. Tail bootstrap: `sudo tail -f /var/log/sqlfw-install.log` until `[SUCCESS] Apps + DB schema ready`
 
-Cloud-init installs Instant Client, Node 22, clones GitHub, builds apps, bootstraps DB, starts systemd (~10–20 min).
+Cloud-init installs Instant Client, Node 22, clones GitHub, builds apps, bootstraps DB, starts systemd, and (when `enable_waf = true`) configures nginx **:80 → WAF LB** (~10–20 min).
 
 **Re-run bootstrap on existing VM:**
 
@@ -210,6 +211,8 @@ Your user or group needs permission to create VCN, DB systems, and compute in th
 Allow group DemoAdmins to manage database-family in compartment sqlfw-demo
 Allow group DemoAdmins to manage instance-family in compartment sqlfw-demo
 Allow group DemoAdmins to manage virtual-network-family in compartment sqlfw-demo
+Allow group DemoAdmins to manage load-balancers in compartment sqlfw-demo
+Allow group DemoAdmins to manage waf-family in compartment sqlfw-demo
 ```
 
 ---
@@ -477,7 +480,7 @@ terraform init
 terraform plan -out=tfplan
 ```
 
-Confirm the plan reads remote state from `../db/terraform.tfstate` and creates one `oci_core_instance`.
+Confirm the plan reads remote state from `../db/terraform.tfstate` and creates compute instance plus (when `enable_waf = true`) load balancer, WAF policy, and WAF attachment.
 
 ```bash
 terraform apply tfplan
@@ -497,6 +500,14 @@ On first boot, `/usr/local/bin/sqlfw-install-apps.sh`:
 6. Writes `.env` files with DB connection + passwords from DB stack
 7. Runs `node scripts/oci-bootstrap-database.mjs` (SYS → schema + SQL Firewall grants)
 8. Enables and starts `aegis-vault.service` and `luminaforge.service`
+9. When `enable_waf = true`: configures nginx on compute **:80** to redirect to the WAF load balancer (`WAF_LB_URL` in `/root/sqlfw-bootstrap.env`)
+
+**Compute Terraform also provisions** (default `enable_waf = true`):
+
+- Reserved public IP + flexible load balancer `${project_prefix}-lb`
+- Backend set → compute private IP `:3001`
+- WAF policy `${project_prefix}-waf-policy` with SQLi JMESPath + OWASP protection rules
+- WAF attachment `demo-wap-firewall`
 
 ### 3.2 Monitor bootstrap
 
@@ -782,15 +793,15 @@ sqlplus "sys/<sys_password>@<db_private_ip>:1521/<pdb_service_name> as sysdba"
 |-------------|------|-----|--------|
 | **Aegis Vault** (SOC dashboard) | **3000** | `http://<compute_public_ip>:3000` | `aegis_vault_url` |
 | **LuminaForge** (direct / bypass WAF) | **3001** | `http://<compute_public_ip>:3001` | `luminaforge_url` |
-| **LuminaForge via WAF** | **80** | `http://<lb_public_ip>/` | Load Balancer `sqlfw-demo-lb` + WAF `demo-wap-firewall` |
-| **Compute :80 shortcut** | **80** | `http://<compute_public_ip>/` | Redirects to LB (after `scripts/setup-waf-port80-redirect.sh`) |
+| **LuminaForge via WAF** | **80** | `http://<lb_public_ip>/` | Compute output `luminaforge_waf_url` — LB + WAF `demo-wap-firewall` |
+| **Compute :80 shortcut** | **80** | `http://<compute_public_ip>/` | Redirects to LB (cloud-init when `enable_waf = true`) |
 
-**WAF path:** Internet → **LB :80** (`sqlfw-demo-waf-policy`) → backend **`<compute_private_ip>:3001`**. Use the LB reserved public IP, not the compute IP on port 80 (LuminaForge does not listen on :80).
+**WAF path:** Internet → **LB :80** (`sqlfw-demo-waf-policy`) → backend **`<compute_private_ip>:3001`**. Use `luminaforge_waf_url` from compute stack outputs.
 
-Backend set must register the compute **private** IP (e.g. `10.40.0.x:3001`), not the public IP. Security list must allow **`compute_subnet_cidr` → TCP 3001** for LB health checks (in `terraform/db/main.tf`).
+Backend set registers the compute **reserved private IP** (`:3001`). Security list allows **`compute_subnet_cidr` → TCP 3001** for LB health checks (in `terraform/db/main.tf`).
 
 ```bash
-# One-time on compute VM (set WAF_LB_URL from LB → Reserved public IP)
+# Legacy VMs only (before WAF was in Terraform compute stack)
 WAF_LB_URL=http://<lb_public_ip> sudo -E bash scripts/setup-waf-port80-redirect.sh
 ```
 

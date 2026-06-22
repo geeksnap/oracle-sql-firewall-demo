@@ -18,6 +18,7 @@ write_files:
       export APP_USER="${app_user}"
       export ORACLE_CLIENT_LIBDIR="/usr/lib/oracle/19.31/client64/lib"
       export LD_LIBRARY_PATH="/usr/lib/oracle/19.31/client64/lib"
+      export WAF_LB_URL="${waf_lb_url}"
 
   - path: /usr/local/bin/sqlfw-install-apps.sh
     permissions: "0755"
@@ -112,6 +113,29 @@ write_files:
       systemctl enable luminaforge.service aegis-vault.service
       systemctl start luminaforge.service aegis-vault.service
       systemctl is-active luminaforge.service aegis-vault.service
+
+      if [ -n "$${WAF_LB_URL:-}" ]; then
+        echo "Configuring compute :80 redirect to WAF load balancer ($${WAF_LB_URL})..."
+        dnf install -y nginx
+        WAF_LB_URL_CLEAN="$${WAF_LB_URL%/}"
+        cat >/etc/nginx/conf.d/sqlfw-waf-redirect.conf <<NGINX
+      # LuminaForge WAF entry — redirect compute :80 to Load Balancer (demo-wap-firewall)
+      server {
+          listen 80 default_server;
+          listen [::]:80 default_server;
+          server_name _;
+          return 302 $${WAF_LB_URL_CLEAN}\$$request_uri;
+      }
+      NGINX
+        nginx -t
+        systemctl enable --now nginx
+        if systemctl is-active firewalld &>/dev/null; then
+          firewall-cmd --permanent --add-port=80/tcp
+          firewall-cmd --reload
+        fi
+        echo "[SUCCESS] http://<compute-public-ip>/ redirects to $${WAF_LB_URL}/"
+      fi
+
       echo "[SUCCESS] Apps + DB schema ready"
 
   - path: /etc/systemd/system/aegis-vault.service
