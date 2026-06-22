@@ -218,8 +218,8 @@ async function handleBootstrapError(connection, err, block, appPassword) {
     console.log("SKIP:", firstLine, "(ORA-00001 — duplicate seed row)");
     return true;
   }
-  if (/CREATE_CAPTURE/i.test(block) && n === 47601) {
-    console.log("SKIP:", firstLine, "(ORA-47601 — capture already exists)");
+  if (/CREATE_CAPTURE/i.test(block) && (n === 47601 || n === 47624)) {
+    console.log("SKIP:", firstLine, `(ORA-${n} — capture already exists)`);
     return true;
   }
   if (n === 900 && /^\s*SELECT\b/i.test(block)) {
