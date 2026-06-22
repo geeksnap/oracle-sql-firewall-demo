@@ -97,25 +97,43 @@ After the compute stack Apply succeeds, cloud-init on the VM (~**10–20 min**):
 
 ## Check 26ai DB home version (before DB stack)
 
-26ai requires **`db_home_version` ≥ `23.26.0.0.0`**. The initial release is `23.26.0.0.0`; newer patch levels appear as higher `23.26.x.x.x` strings when available in your region. Do **not** use `26.0.0.0.0`.
+26ai requires **`db_home_version` ≥ `23.26.0.0.0`**. Versions appear as **`23.26.x.x.x`** (e.g. `23.26.0.0.0`, `23.26.1.0.0`). Do **not** use `26.0.0.0.0`.
 
 ```bash
 export COMPARTMENT_ID="ocid1.compartment.oc1..aaaaaaaaexample"   # same as compartment_id variable
+export OCI_REGION="ap-tokyo-1"                                   # same as region variable
+export SUPPRESS_LABEL_WARNING=True                               # optional
 
-# List all 26ai-eligible versions in this region
+# 1) List ALL versions — confirms CLI works and shows regional catalog
 oci db version list \
   --compartment-id "$COMPARTMENT_ID" \
-  --query "data[?starts_with(version, '23.26')].version | sort(@)" \
+  --region "$OCI_REGION" \
+  --all \
+  --query "data[*].version" \
   --output table
 
-# Optional: print latest for copy-paste into db_home_version
+# 2) Filter 26ai (23.26+) — recommended: jq (reliable when JMESPath filter is empty)
 oci db version list \
   --compartment-id "$COMPARTMENT_ID" \
-  --query "data[?starts_with(version, '23.26')].version | sort(@) | [-1]" \
-  --raw-output
+  --region "$OCI_REGION" \
+  --all \
+  --output json \
+| jq -r '.data[].version | select(test("^23\\.26\\."))' | sort -V
+
+# 2b) JMESPath alternative — note backticks around 23.26, not single quotes
+oci db version list \
+  --compartment-id "$COMPARTMENT_ID" \
+  --region "$OCI_REGION" \
+  --all \
+  --query "data[?contains(version, \`23.26\`)].version" \
+  --output table
 ```
 
-Copy the **exact** version string into the DB stack **`db_home_version`** variable (Resource Manager → Configure variables). **Console alternative:** **Base Database → Create** → pick the latest **23.26.x** database version.
+Use the **highest** `23.26+` string from step 2 for **`db_home_version`**.
+
+**If step 2 is empty:** verify `echo $COMPARTMENT_ID` is set, `OCI_REGION` matches your Console region, and **Base Database → Create** shows a **23.26.x** version. If the unfiltered list (step 1) stops at `21.0.0.0`, 26ai is not yet offered for Base Database in that region.
+
+**Console alternative:** **Base Database → Create** → pick the latest **23.26.x** database version.
 
 ---
 
@@ -649,7 +667,7 @@ Destroy **compute stack** first, then **DB stack** (each stack → **Destroy** j
 | Apply OK but apps down | Wait 10–20 min; `sudo tail -f /var/log/sqlfw-install.log` |
 | `Permission denied` on `/var/log/sqlfw-install.log` | Use `sudo bash -c '.../sqlfw-install-apps.sh >> /var/log/sqlfw-install.log 2>&1'` — not `sudo cmd >> log` |
 | Compute **plan** fails on remote state | Set **`db_stack_id`** to DB stack OCID (`ocid1.ormstack...`); DB stack Apply must **Succeeded** first |
-| `db_home_version` invalid / 400 InvalidParameter | Re-run [Check 26ai DB home version](#check-26ai-db-home-version-before-db-stack); use latest **`23.26+`** (minimum `23.26.0.0.0`, not `26.0.0.0.0`) |
+| `db_home_version` invalid / 400 InvalidParameter | Re-run [Check 26ai DB home version](#check-26ai-db-home-version-before-db-stack): list all versions first, then filter with `jq`. Empty = wrong region, unset `COMPARTMENT_ID`, or 26ai not in region |
 | Password error | Delete password vars; defaults: `"DbAdm12_Ab-cdXy"` / `"AppDb34_Cd-efGh"` (no `sys` / `Oracle`) |
 | Object Storage / subnet error | Upload latest zip (service gateway + security list egress); re-Apply DB stack |
 | Git clone fails on VM | Public repo URL without token, or PAT in `github_repo_url`; update `/root/sqlfw-bootstrap.env` and re-run install |

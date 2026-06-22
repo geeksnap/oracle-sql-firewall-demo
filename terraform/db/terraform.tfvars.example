@@ -10,9 +10,10 @@ ssh_public_key    = "ssh-ed25519 AAAA... your-key"
 allow_ssh_cidr    = "0.0.0.0/0"
 
 # 26ai requires db_home_version >= 23.26.0.0.0 (not 26.0.0.0.0).
-# List versions in YOUR region, then paste the latest 23.26+ string below:
-#   oci db version list --compartment-id <ocid> \
-#     --query "data[?starts_with(version, '23.26')].version | sort(@)" --output table
+# Look up latest 23.26+ in YOUR region (see terraform/README.md §1.4):
+#   export COMPARTMENT_ID=... OCI_REGION=...
+#   oci db version list --compartment-id "$COMPARTMENT_ID" --region "$OCI_REGION" --all --output json \
+#     | jq -r '.data[].version | select(test("^23\\.26\\."))' | sort -V
 db_home_version   = "23.26.0.0.0"
 
 # Hardcoded OCI-compliant demo passwords (defaults in variables.tf)

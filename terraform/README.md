@@ -274,43 +274,62 @@ Paste into **both** files:
 
 ### 1.4 Oracle DB home version (26ai)
 
-Oracle AI Database **26ai** requires DB home version **`23.26.0.0.0` or newer** (the product line starts at `23.26.0.0.0`; do **not** use `26.0.0.0.0` or pre-26ai `23.0.0.0`). The Terraform default is `23.26.0.0.0` — **always look up the latest 26ai version in your region** before apply and set `db_home_version` to that exact string.
+Oracle AI Database **26ai** requires DB home version **`23.26.0.0.0` or newer** (the product line starts at `23.26.0.0.0`; GA patches may show as `23.26.1.0.0`, etc.). Do **not** use `26.0.0.0.0` or pre-26ai `23.0.0.0`. The Terraform default is `23.26.0.0.0` — **always look up the latest 26ai version in your region** before apply and set `db_home_version` to that exact string.
 
-**Step 1 — set your compartment OCID** (same value as `compartment_id` in `terraform.tfvars`):
+**Step 1 — set compartment and region** (must match `terraform/db/terraform.tfvars`):
 
 ```bash
 export COMPARTMENT_ID="ocid1.compartment.oc1..aaaaaaaaexample"
+export OCI_REGION="ap-tokyo-1"    # same as region in terraform.tfvars / ~/.oci/config
+export SUPPRESS_LABEL_WARNING=True   # optional — silences OCI API key label warning
 ```
 
-**Step 2 — list 26ai-eligible versions** (`23.26.0.0.0` and newer patches in your region):
+**Step 2 — list all database versions** (confirms CLI auth and shows what your region offers):
 
 ```bash
 oci db version list \
   --compartment-id "$COMPARTMENT_ID" \
-  --query "data[?starts_with(version, '23.26')].version | sort(@)" \
+  --region "$OCI_REGION" \
+  --all \
+  --query "data[*].version" \
   --output table
 ```
 
-**Step 3 — (optional) print the latest 26ai version** for copy-paste into Terraform:
+**Step 3 — filter 26ai versions** (`23.26.x.x.x`). Use **`jq`** (most reliable; works when JMESPath filters return empty):
 
 ```bash
 oci db version list \
   --compartment-id "$COMPARTMENT_ID" \
-  --query "data[?starts_with(version, '23.26')].version | sort(@) | [-1]" \
-  --raw-output
+  --region "$OCI_REGION" \
+  --all \
+  --output json \
+| jq -r '.data[].version | select(test("^23\\.26\\."))' | sort -V
 ```
 
-Example output: `23.26.0.0.0` (initial release; newer patch levels appear as higher `23.26.x.x.x` strings when Oracle publishes them).
+Pick the **last line** (highest `23.26+` version) for `db_home_version`.
 
-**Console alternative:** **Oracle Base Database → Create** → **Database version** — pick the latest **23.26.x** entry.
+**Step 3b — JMESPath alternative** (OCI CLI uses backticks for string literals, not single quotes):
+
+```bash
+oci db version list \
+  --compartment-id "$COMPARTMENT_ID" \
+  --region "$OCI_REGION" \
+  --all \
+  --query "data[?contains(version, \`23.26\`)].version" \
+  --output table
+```
 
 **Step 4 — set in `terraform/db/terraform.tfvars`:**
 
 ```hcl
-db_home_version = "23.26.0.0.0"   # replace with latest string from Step 2 or 3
+db_home_version = "23.26.0.0.0"   # replace with latest 23.26+ string from Step 3
 ```
 
-The value must match **exactly** (including the fifth dotted segment). If apply fails with `InvalidParameter` on `db_home_version`, re-run Step 2 — regional availability differs.
+The value must match **exactly** (including all dotted segments).
+
+**If Step 3 returns nothing:** 26ai Base Database may not be available in that region yet — check **Oracle Base Database → Create** in the Console for a **23.26.x** version, try another region, or confirm `COMPARTMENT_ID` and `OCI_REGION` are set (an unset `$COMPARTMENT_ID` still runs but returns no rows).
+
+**Console alternative:** **Oracle Base Database → Create** → **Database version** — pick the latest **23.26.x** entry.
 
 ### 1.5 Presenter network access (security lists)
 
@@ -609,7 +628,7 @@ cd ../db && terraform destroy
 | `Error: 401-NotAuthenticated` | Fix `~/.oci/config`, API key, clock skew |
 | `Error: 403-NotAuthorized` | Add IAM policy for compartment |
 | DB apply slow | Normal; wait for **AVAILABLE** |
-| `db_home_version` invalid | Re-run §1.4 `oci db version list`; use latest **`23.26+`** string (minimum `23.26.0.0.0`, not `26.0.0.0.0`) |
+| `db_home_version` invalid | Re-run §1.4: list all versions (Step 2), then filter with `jq` (Step 3). Empty filter = wrong region, unset `COMPARTMENT_ID`, or 26ai not in region yet |
 | Cloud-init failed | `sudo cat /var/log/sqlfw-install.log` on compute |
 | DB listener timeout | Confirm DB **AVAILABLE**; security list allows 1521 from compute subnet |
 | Bootstrap ORA errors | Stop apps; re-run bootstrap with env from `/root/sqlfw-bootstrap.env` (include `ORACLE_CLIENT_LIBDIR`) |
