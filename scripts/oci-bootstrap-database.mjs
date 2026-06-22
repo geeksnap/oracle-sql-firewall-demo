@@ -168,6 +168,59 @@ function prepareSql(content, pdbName, appPassword) {
     .replaceAll(REF_APP_PW, appPassword);
 }
 
+function quoteOraclePassword(pw) {
+  return `"${String(pw).replace(/"/g, '""')}"`;
+}
+
+function blockFirstLine(block) {
+  return block.split("\n")[0].slice(0, 72);
+}
+
+/** Idempotent re-run: skip or repair statements that already applied on a prior bootstrap. */
+async function handleBootstrapError(connection, err, block, appPassword) {
+  const firstLine = blockFirstLine(block);
+  const n = err?.errorNum;
+
+  if (n === 1749) {
+    console.log("SKIP:", firstLine, "(ORA-01749)");
+    return true;
+  }
+  if (n === 47630) {
+    console.log("SKIP:", firstLine, "(ORA-47630 — no allow-list yet)");
+    return true;
+  }
+  if (n === 1920 && /^CREATE\s+USER\s+/i.test(block)) {
+    const userMatch = block.match(/^CREATE\s+USER\s+(\S+)/i);
+    if (userMatch) {
+      const user = userMatch[1];
+      await connection.execute(
+        `ALTER USER ${user} IDENTIFIED BY ${quoteOraclePassword(appPassword)}`,
+        [],
+        { autoCommit: true },
+      );
+      console.log("SKIP+ALTER:", user, "(ORA-01920 — user exists, password synced)");
+      return true;
+    }
+  }
+  if (n === 955 && /^CREATE\s+/i.test(block)) {
+    console.log("SKIP:", firstLine, "(ORA-00955 — object exists)");
+    return true;
+  }
+  if (n === 1 && /^INSERT\s+/i.test(block)) {
+    console.log("SKIP:", firstLine, "(ORA-00001 — duplicate seed row)");
+    return true;
+  }
+  if (/CREATE_CAPTURE/i.test(block) && n === 47601) {
+    console.log("SKIP:", firstLine, "(ORA-47601 — capture already exists)");
+    return true;
+  }
+  if (n === 900 && /^\s*SELECT\b/i.test(block)) {
+    console.log("SKIP: verify SELECT");
+    return true;
+  }
+  return false;
+}
+
 async function main() {
   const connectString = process.env.DB_CONNECT_STRING;
   const sysPassword = process.env.DB_SYS_PASSWORD;
@@ -213,17 +266,7 @@ async function main() {
           await connection.execute(block, [], { autoCommit: true });
           console.log("OK:", block.split("\n")[0].slice(0, 72));
         } catch (err) {
-          if (err?.errorNum === 1749) {
-            console.log("SKIP:", block.split("\n")[0].slice(0, 72), "(ORA-01749)");
-            continue;
-          }
-          if (err?.errorNum === 47630) {
-            console.log("SKIP:", block.split("\n")[0].slice(0, 72), "(ORA-47630 — no allow-list yet)");
-            continue;
-          }
-          // Verification SELECT after bootstrap — optional
-          if (err?.errorNum === 900 && /^\s*SELECT\b/i.test(block)) {
-            console.log("SKIP: verify SELECT");
+          if (await handleBootstrapError(connection, err, block, appPassword)) {
             continue;
           }
           throw err;

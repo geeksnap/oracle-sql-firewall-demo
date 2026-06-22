@@ -675,6 +675,7 @@ Destroy **compute stack** first, then **DB stack** (each stack → **Destroy** j
 | DB listener timeout in log | DB not **AVAILABLE** yet; wait, then re-run install script |
 | Demo Control ORA errors / invalid package | Bootstrap incomplete — stop apps, re-run bootstrap (5C Option 2); check `AEGIS_DEMO_CONTROL` **VALID** |
 | Bootstrap **ORA-47630** (`allow list … does not exist`) | Fresh PDB has no `AEGIS_APP` allow-list yet; `configure_aegis_soc` must ignore this. Pull latest `Oracle_DB_Demo_Control_Grant.sql` and re-run bootstrap (5C Option 2) |
+| Bootstrap **ORA-01920** (`user name … conflicts`) | Partial bootstrap already created `AEGIS_APP` / `luminaforge`. Pull latest `oci-bootstrap-database.mjs` (syncs password + skips existing objects) and re-run bootstrap (5C Option 2) |
 | LuminaForge Market search fails | Same as NJS-533 — thick mode + rebuild |
 | RM job permission denied | Add `manage orm-stacks` + `manage orm-jobs` (+ resource-family policies) |
 | VCN / subnet overlap error | Change `vcn_cidr` / subnet CIDRs; do not use VCN Wizard |

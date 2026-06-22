@@ -638,6 +638,7 @@ cd ../db && terraform destroy
 | `MODULE_NOT_FOUND` oci-bootstrap-database.mjs | Push script to GitHub `main`; re-run install script |
 | Demo Control ORA-47605 | Re-run bootstrap or `@Oracle_DB_Demo_Control_Grant.sql` as SYS |
 | Bootstrap ORA-47630 | No allow-list row for `AEGIS_APP` yet on fresh PDB — update `Oracle_DB_Demo_Control_Grant.sql` (ignore `-47630` in `configure_aegis_soc`) and re-run bootstrap |
+| Bootstrap ORA-01920 | Users already exist from a partial run — update `oci-bootstrap-database.mjs` and re-run bootstrap |
 | SSH permission denied | `ssh -i ~/.ssh/id_ed25519_sqlfw opc@<ip>` |
 | Apps up but HTTP **000** / timeout | `allow_ssh_cidr` + **Apply** DB stack; firewalld 3000/3001 on VM |
 | `terraform_remote_state` error (local) | Apply DB stack first; verify `db_state_path` |
