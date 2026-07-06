@@ -144,8 +144,8 @@ resource "oci_waf_web_app_firewall_policy" "demo" {
           content {
             key                            = protection_capabilities.value.key
             version                        = protection_capabilities.value.version
-            action_name                    = protection_capabilities.value.actionName
-            collaborative_action_threshold = protection_capabilities.value.collaborativeActionThreshold
+            action_name                    = try(protection_capabilities.value.actionName, null)
+            collaborative_action_threshold = try(protection_capabilities.value.collaborativeActionThreshold, null)
           }
         }
       }
