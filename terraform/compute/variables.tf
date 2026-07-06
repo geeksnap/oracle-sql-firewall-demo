@@ -23,6 +23,14 @@ variable "db_stack_id" {
   default     = null
 
   validation {
+    condition = (
+      try(trimspace(var.db_stack_id) != "", false) ||
+      fileexists(var.db_state_path)
+    )
+    error_message = "Set db_stack_id to your DB stack OCID (ocid1.ormstack...) for OCI Console deployment. For local CLI, apply the DB stack first so db_state_path exists."
+  }
+
+  validation {
     condition     = var.db_stack_id == null || can(regex("^ocid1\\.ormstack\\.", var.db_stack_id))
     error_message = "db_stack_id must be a Resource Manager stack OCID (starts with ocid1.ormstack.). Copy from your DB stack in the Console."
   }
