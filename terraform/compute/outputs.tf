@@ -33,7 +33,7 @@ output "waf_attachment_id" {
 
 output "compute_private_ip" {
   description = "Private IP used as LuminaForge LB backend (:3001)"
-  value       = local.compute_private_ip
+  value       = oci_core_instance.apps.private_ip
 }
 
 output "db_connection_string" {
@@ -42,11 +42,11 @@ output "db_connection_string" {
 }
 
 output "ssh_command" {
-  value = "ssh opc@${local.compute_public_ip}"
+  value = "ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@${local.compute_public_ip}"
 }
 
 output "install_log" {
-  value = "ssh opc@${local.compute_public_ip} 'sudo tail -f /var/log/sqlfw-install.log'"
+  value = "ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@${local.compute_public_ip} 'sudo tail -f /var/log/cloud-init-output.log'"
 }
 
 output "demo_control_note" {

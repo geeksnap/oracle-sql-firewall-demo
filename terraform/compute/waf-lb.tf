@@ -9,14 +9,6 @@ locals {
   waf_lb_url              = var.enable_waf ? "http://${oci_core_public_ip.lb[0].ip_address}" : ""
 }
 
-resource "oci_core_private_ip" "app" {
-  count        = var.enable_waf ? 1 : 0
-  compartment_id = var.compartment_id
-  subnet_id      = local.compute_subnet_id
-  display_name   = "${var.project_prefix}-apps-private-ip"
-  lifetime       = "RESERVED"
-}
-
 resource "oci_core_public_ip" "lb" {
   count          = var.enable_waf ? 1 : 0
   compartment_id = var.compartment_id
@@ -46,7 +38,6 @@ resource "oci_load_balancer_load_balancer" "demo" {
     "Stack"   = "compute"
   }
 
-  depends_on = [oci_core_private_ip.app]
 }
 
 resource "oci_load_balancer_backend_set" "luminaforge" {
@@ -71,7 +62,7 @@ resource "oci_load_balancer_backend" "luminaforge" {
   count            = var.enable_waf ? 1 : 0
   load_balancer_id = oci_load_balancer_load_balancer.demo[0].id
   backendset_name  = oci_load_balancer_backend_set.luminaforge[0].name
-  ip_address       = oci_core_private_ip.app[0].ip_address
+  ip_address       = oci_core_instance.apps.private_ip
   port             = 3001
   weight           = 1
   backup           = false
