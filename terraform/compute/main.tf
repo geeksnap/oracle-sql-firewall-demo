@@ -99,9 +99,9 @@ resource "oci_core_instance" "apps" {
     }))
   }
 
-  depends_on = var.enable_waf ? [
+  depends_on = [
     oci_waf_web_app_firewall.demo,
-  ] : []
+  ]
 
   freeform_tags = {
     "Project" = "oracle-sql-firewall-demo"
