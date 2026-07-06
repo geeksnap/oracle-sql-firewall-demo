@@ -27,8 +27,7 @@ export interface InitManualFinalizeGuide {
 export const INIT_MANUAL_FINALIZE_STEPS_COMPLETED: readonly string[] = [
   "Cleared existing allow-list and capture for luminaforge",
   "Started SQL capture for LUMINAFORGE",
-  "Seeded baseline benign SQL (bootstrap procedure)",
-  "Captured LuminaForge app session context via /api/session and /api/portfolio",
+  "Captured benign SQL + navbar session shapes via LuminaForge HTTP /api/training/benign-bootstrap",
 ];
 
 export const INIT_MANUAL_FINALIZE_NEXT_STEPS: readonly string[] = [

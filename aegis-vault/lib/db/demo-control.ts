@@ -6,8 +6,6 @@ import {
 } from "../demo-control-types";
 import {
   runLuminaforgeAppContextTraining,
-  runLuminaforgeBenignBootstrap,
-  withLuminaforgeConnection,
 } from "./luminaforge-session";
 import { withConnection } from "./pool";
 
@@ -135,7 +133,7 @@ function displaySql(scope: DemoScope, action: DemoAction): string {
         "-- 1. Clear policy + start capture (AEGIS_APP → SYS.aegis_demo_control)",
         "BEGIN SYS.aegis_demo_control.clear_firewall_policy('luminaforge', :msg); END;",
         "BEGIN SYS.aegis_demo_control.init_default_demo_policy('luminaforge', :msg); END;",
-        "-- 2. Benign SQL as luminaforge + LuminaForge HTTP /api/session,/api/portfolio",
+        "-- 2. LuminaForge HTTP /api/training/benign-bootstrap (session + portfolio + recent tx)",
         "-- 3. (Manual) Stop SQL capture → Generate Allow List — not run by init",
       ].join("\n");
     case "view-violations":
@@ -231,12 +229,10 @@ async function executeInitDefaultPolicy(): Promise<DemoExecuteResult> {
       );
     });
 
-    await withLuminaforgeConnection(async (connection) => {
-      await runLuminaforgeBenignBootstrap(connection);
-      lines.push("Benign SQL executed as luminaforge (capture training).");
-    });
-
     lines.push(...(await runLuminaforgeAppContextTraining()));
+    lines.push(
+      "Benign SQL + navbar session shapes captured via LuminaForge HTTP (correct session context).",
+    );
 
     lines.push(
       "Capture is ON. Finish manually: browse LuminaForge → Stop SQL capture → Generate Allow List.",

@@ -7,11 +7,14 @@ const BENIGN_BOOTSTRAP_SQL = [
   "SELECT COUNT(*) FROM transactions WHERE user_id = 1",
   "SELECT COUNT(*) FROM luxury_items WHERE category = 'watch'",
   "SELECT COUNT(*) FROM users WHERE username = 'demo_user'",
-  "SELECT username, role FROM users WHERE id = 1",
+  "SELECT username, role FROM users WHERE id = :userId",
   "SELECT 1 FROM dual",
 ] as const;
 
-const LUMINAFORGE_HTTP_TRAINING_PATHS = ["/api/session", "/api/portfolio"] as const;
+/** Train via LuminaForge HTTP only — captures correct CLIENT_PROGRAM / IP context. */
+const LUMINAFORGE_HTTP_TRAINING_PATHS = [
+  "/api/training/benign-bootstrap",
+] as const;
 const LUMINAFORGE_HTTP_TIMEOUT_MS = 15_000;
 
 let luminaforgePool: Pool | null = null;
@@ -51,7 +54,11 @@ export async function runLuminaforgeBenignBootstrap(
   }
 
   for (const sql of BENIGN_BOOTSTRAP_SQL) {
-    await connection.execute(sql);
+    if (sql.includes(":userId")) {
+      await connection.execute(sql, { userId: 1 });
+    } else {
+      await connection.execute(sql);
+    }
   }
 }
 

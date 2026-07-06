@@ -49,6 +49,9 @@ export async function withConnection<T>(
 
   try {
     connection = await activePool.getConnection();
+    await connection.execute(
+      `BEGIN DBMS_APPLICATION_INFO.SET_MODULE('LuminaForge', 'api'); END;`,
+    );
     return await fn(connection);
   } finally {
     if (connection) {

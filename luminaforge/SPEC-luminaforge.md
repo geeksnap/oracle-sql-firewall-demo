@@ -36,7 +36,7 @@ Stunning user-facing premium wealth + luxury marketplace app (B2C/Enterprise). D
 - **SQL violation:** An unknown or disallowed statement (injection, UNION, etc.). Aegis **FULL SQL** shows the statement; **Type** is typically `SQL violation`.
 - **Context violation:** Session attributes (client program, IP, OS user) do not match the allow-list — often **no SQL text** (empty FULL SQL). **Type** = `Context violation`. Not an attack; common when allow-list was trained without the LuminaForge app server running.
 - **Navbar tab switch:** Each route change refetches `GET /api/session`. With `ENFORCE_ALL`, mismatched session context logs Context violations even though the SQL is benign.
-- **Initialize default demo policy:** LuminaForge **must be running** (default `http://localhost:3001`, override `LUMINAFORGE_BASE_URL` on Aegis) for steps 1–4 (bootstrap + HTTP context). Init **leaves capture ON**; presenter finishes with **Stop SQL capture** → **Generate Allow List** (see Demo Control modal).
+- **Initialize default demo policy:** LuminaForge **must be running** (default `http://localhost:3001`, override `LUMINAFORGE_BASE_URL` on Aegis) for HTTP training (`/api/training/benign-bootstrap`). Init **leaves capture ON**; presenter finishes with **Stop SQL capture** → **Generate Allow List** (see Demo Control modal).
 
 ### 7. Tech Stack
 Same as Aegis Vault + oracledb connection to luminaforge user

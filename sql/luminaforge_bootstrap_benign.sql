@@ -57,15 +57,30 @@ BEGIN
   FROM   luminaforge.transactions
   WHERE  user_id = 1;
 
-  -- ── Users (safe probe + navbar session API shape) ────────
+  -- ── Users (safe probe + navbar session API shape — bind, matches GET /api/session) ─
   SELECT COUNT(*) INTO l_n
   FROM   luminaforge.users
   WHERE  username = 'demo_user' AND password IS NOT NULL;
 
-  SELECT username, role
-  INTO   l_username, l_role
-  FROM   luminaforge.users
-  WHERE  id = 1;
+  EXECUTE IMMEDIATE
+    'SELECT username, role FROM luminaforge.users WHERE id = :userId'
+    INTO l_username, l_role
+    USING 1;
+
+  -- ── Portfolio list (matches GET /api/portfolio) ─────────────────────────────
+  SELECT COUNT(*) INTO l_n
+  FROM (
+    SELECT id
+    FROM   luminaforge.portfolio
+    WHERE  user_id = 1
+    ORDER  BY symbol
+  ) WHERE ROWNUM = 1;
+
+  -- ── Recent transactions (matches POST /api/transactions/recent) ─────────────
+  SELECT COUNT(*) INTO l_n
+  FROM   luminaforge.transactions
+  WHERE  user_id = 1
+    AND  timestamp >= SYSTIMESTAMP - NUMTODSINTERVAL(30, 'DAY');
 
   SELECT 1 INTO l_n FROM dual;
 END aegis_demo_bootstrap_benign;
