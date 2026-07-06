@@ -1,6 +1,6 @@
 # OCI Resource Manager: pull DB stack state by stack OCID (Console Terraform).
 locals {
-  use_rm_db_state = var.db_stack_id != null && trimspace(var.db_stack_id) != ""
+  use_rm_db_state = try(trimspace(var.db_stack_id) != "", false)
 }
 
 data "oci_resourcemanager_stack_tf_state" "db_rm" {
