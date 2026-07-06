@@ -27,7 +27,7 @@ The **DB stack creates the entire network** automatically. You do **not** need a
 | Internet gateway + route tables | yes | — |
 | **Service gateway** | yes — DB subnet → Object Storage (required for Base DB) | — |
 | Security lists | yes — **1521** (compute→DB), **22/3000/3001/80** (`allow_ssh_cidr` + LB) | — |
-| **firewalld on compute VM** | cloud-init opens **3000/3001** (+ **80** when WAF enabled) | — |
+| **ufw on compute VM** | cloud-init opens **3000/3001** (+ **80** when WAF enabled) | — |
 | **Load Balancer + WAF** | **compute stack** (`enable_waf = true`, default) — `sqlfw-demo-lb`, `demo-waf-firewall` | — |
 
 **Do not** use **Networking → Virtual Cloud Networks → VCN Wizard** before deploying. A wizard VCN will not be used by this Terraform and will cause confusion (wrong subnets, missing rules for ports 3000/3001 and 1521).
@@ -49,15 +49,15 @@ Browser access to the apps requires **both** layers to allow your IP:
 | Layer | Where | What to set |
 |-------|--------|-------------|
 | **OCI security list** | DB stack variable `allow_ssh_cidr` | Your public IP `/32`, or `0.0.0.0/0` for open demos |
-| **firewalld on VM** | cloud-init (automatic on new VMs) | Opens TCP 3000, 3001, and **80** (when `enable_waf = true`) |
+| **ufw on VM** | cloud-init (automatic on new VMs) | Opens TCP 3000, 3001, and **80** (when `enable_waf = true`) |
 
 Changing `allow_ssh_cidr` in the Console **Variables** tab does nothing until you run **Plan → Apply** on the **DB stack**.  
-If HTTP returns `000` or connection refused but SSH works, check firewalld on the VM:
+If HTTP returns `000` or connection refused but SSH works, check ufw on the VM:
 
 ```bash
-ssh -i ~/.ssh/id_ed25519_sqlfw opc@$COMPUTE_IP \
-  'sudo firewall-cmd --list-ports'
-# expect: 3000/tcp 3001/tcp  (and 80/tcp when WAF enabled)
+ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@$COMPUTE_IP \
+  'sudo ufw status'
+# expect: 3000/tcp ALLOW  3001/tcp ALLOW  (and 80/tcp when WAF enabled)
 ```
 
 ---
@@ -76,19 +76,17 @@ Set `enable_waf = false` in compute stack Variables to skip LB/WAF (direct `:300
 
 **After Apply succeeds**, cloud-init on the VM runs (~**10–20 min**):
 
-1. Opens **firewalld** ports 3000 / 3001 (+ **80** when WAF enabled)
-2. Installs **Oracle Instant Client 19.31** (thick mode — required for OCI Base DB; thin mode fails **NJS-533**)
-3. Installs **Node.js 22**, clones GitHub, waits for DB listener on port 1521
-4. Runs `npm ci` + `npm run build` for both apps (with `ORACLE_CLIENT_LIBDIR` / `LD_LIBRARY_PATH`)
-5. Runs `scripts/oci-bootstrap-database.mjs` (schema, users, demo packages)
-6. Starts **systemd** services `aegis-vault` (:3000) and `luminaforge` (:3001)
-7. When WAF enabled: installs **nginx** on compute **:80** → redirects to **`luminaforge_waf_url`**
+1. Opens **ufw** ports 3000 / 3001 (+ **80** when WAF enabled)
+2. Installs **Node.js 22** via NodeSource + `apt`, clones GitHub, waits for DB listener on port 1521
+3. Runs `npm ci` + `npm run build` for both apps
+4. Runs `scripts/oci-bootstrap-database.mjs` (schema, users, demo packages) — **node-oracledb Thin Mode**, no Instant Client required
+5. Starts **systemd** services `aegis-vault` (:3000) and `luminaforge` (:3001)
+6. When WAF enabled: installs **nginx** on compute **:80** → redirects to **`luminaforge_waf_url`**
 
 **Repo on GitHub must include** (push to `main` before deploy):
 
 - `scripts/oci-bootstrap-database.mjs`
 - `serverExternalPackages: ["oracledb"]` in both `next.config.ts` files
-- Thick-mode pool init in `aegis-vault/lib/db/pool.ts` and `luminaforge/src/lib/db/pool.ts`
 
 ---
 
@@ -113,7 +111,7 @@ Set `enable_waf = false` in compute stack Variables to skip LB/WAF (direct `:300
 26ai requires **`db_home_version` ≥ `23.26.0.0.0`**. Versions appear as **`23.26.x.x.x`** (e.g. `23.26.0.0.0`, `23.26.1.0.0`). Do **not** use `26.0.0.0.0`.
 
 ```bash
-export COMPARTMENT_ID="ocid1.compartment.oc1..aaaaaaaaexample"   # same as compartment_id variable
+export COMPARTMENT_ID="ocid1.compartment.oc1..aaaaaaaaqcvjcdgexiyboeveqjc3izpzgk52mjmcf5qcelz2fvdbmhdg6b6q"   # same as compartment_id variable
 export OCI_REGION="ap-tokyo-1"                                   # same as region variable
 export SUPPRESS_LABEL_WARNING=True                               # optional
 
@@ -187,7 +185,7 @@ Each zip has `.tf` files at the **root** (no `.terraform/`, no `terraform.tfvars
 
 ```hcl
 region          = "ap-singapore-1"              # same as Console region
-compartment_id  = "ocid1.compartment.oc1....."  # where VCN + DB are created
+compartment_id  = "ocid1.compartment.oc1..aaaaaaaaqcvjcdgexiyboeveqjc3izpzgk52mjmcf5qcelz2fvdbmhdg6b6q"  # where VCN + DB are created
 ssh_public_key  = "ssh-ed25519 AAAA... sqlfw"   # full single-line .pub
 db_home_version = "23.26.0.0.0"                 # >= 23.26.0.0.0 — use latest from "oci db version list" (see Check 26ai DB home version)
 allow_ssh_cidr  = "YOUR.PUBLIC.IP/32"   # or "0.0.0.0/0" for open demos — Apply required after change
@@ -296,14 +294,14 @@ Saving a variable in Resource Manager does **not** re-run cloud-init. Either:
 COMPUTE_IP=<compute_public_ip>
 
 # Update clone URL on VM if you changed github_repo_url
-ssh -i ~/.ssh/id_ed25519_sqlfw opc@$COMPUTE_IP \
+ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@$COMPUTE_IP \
   'sudo sed -i "s|^export GITHUB_REPO=.*|export GITHUB_REPO=https://github.com/geeksnap/oracle-sql-firewall-demo.git|" /root/sqlfw-bootstrap.env'
 
 # Re-run install (must use bash -c so log redirection runs as root)
-ssh -i ~/.ssh/id_ed25519_sqlfw opc@$COMPUTE_IP \
+ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@$COMPUTE_IP \
   'sudo bash -c "/usr/local/bin/sqlfw-install-apps.sh >> /var/log/sqlfw-install.log 2>&1"'
 
-ssh -i ~/.ssh/id_ed25519_sqlfw opc@$COMPUTE_IP \
+ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@$COMPUTE_IP \
   'sudo tail -f /var/log/sqlfw-install.log'
 ```
 
@@ -321,7 +319,7 @@ ssh -i ~/.ssh/id_ed25519_sqlfw opc@$COMPUTE_IP \
 
 ```hcl
 region          = "ap-tokyo-1"                  # same as DB stack
-compartment_id  = "ocid1.compartment.oc1....."  # same as DB stack
+compartment_id  = "ocid1.compartment.oc1..aaaaaaaaqcvjcdgexiyboeveqjc3izpzgk52mjmcf5qcelz2fvdbmhdg6b6q"  # same as DB stack
 ssh_public_key  = "ssh-ed25519 AAAA... sqlfw"   # same key as DB stack
 project_prefix  = "sqlfw-demo"                  # same as DB stack
 db_stack_id     = "ocid1.ormstack.oc1....."    # REQUIRED — DB stack OCID from Step 2
@@ -352,14 +350,14 @@ enable_waf      = true    # default — LB + WAF + compute :80 redirect; set fal
 
 ```bash
 COMPUTE_IP=<from terraform output compute_public_ip>
-ssh -i ~/.ssh/id_ed25519_sqlfw opc@$COMPUTE_IP \
+ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@$COMPUTE_IP \
   'sudo tail -f /var/log/sqlfw-install.log'
 ```
 
 Success line: `[SUCCESS] Apps + DB schema ready`
 
 ```bash
-ssh -i ~/.ssh/id_ed25519_sqlfw opc@$COMPUTE_IP \
+ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@$COMPUTE_IP \
   'sudo systemctl is-active aegis-vault luminaforge'
 ```
 
@@ -420,11 +418,11 @@ AEGIS_URL=<aegis_vault_url>
 LUMINA_URL=<luminaforge_url>
 
 # 1. Bootstrap finished
-ssh -i ~/.ssh/id_ed25519_sqlfw opc@$COMPUTE_IP \
+ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@$COMPUTE_IP \
   'grep SUCCESS /var/log/sqlfw-install.log'
 
 # 2. Services running
-ssh -i ~/.ssh/id_ed25519_sqlfw opc@$COMPUTE_IP \
+ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@$COMPUTE_IP \
   'sudo systemctl is-active aegis-vault luminaforge'
 
 # 3. HTTP smoke test
@@ -534,7 +532,7 @@ Direct `:3001` regression: all four canonical attack payloads still work without
 SSH as `opc`, then run checks as app user or with sqlplus.
 
 ```bash
-ssh -i ~/.ssh/id_ed25519_sqlfw opc@$COMPUTE_IP
+ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@$COMPUTE_IP
 ```
 
 **Option 1 — read bootstrap env and sqlplus**
@@ -620,8 +618,6 @@ sudo -u odb_sec git -C /home/odb_sec/apps/oracle-sql-firewall-demo pull origin m
 sudo bash -c 'source /root/sqlfw-bootstrap.env && \
   cd /home/odb_sec/apps/oracle-sql-firewall-demo && \
   sudo -u odb_sec env \
-    ORACLE_CLIENT_LIBDIR="$ORACLE_CLIENT_LIBDIR" \
-    LD_LIBRARY_PATH="$LD_LIBRARY_PATH" \
     DB_CONNECT_STRING="$DB_CONNECT_STRING" \
     DB_SYS_PASSWORD="$DB_SYS_PASSWORD" \
     DB_PDB_NAME="$DB_PDB_NAME" \
@@ -647,8 +643,8 @@ If step 3 fails with ORA error → schema/bootstrap issue (repeat 5C).
 If apps show connection errors → check `.env` on compute:
 
 ```bash
-ssh opc@$COMPUTE_IP 'sudo cat /home/odb_sec/apps/oracle-sql-firewall-demo/aegis-vault/.env'
-ssh opc@$COMPUTE_IP 'sudo cat /home/odb_sec/apps/oracle-sql-firewall-demo/luminaforge/.env'
+ssh ubuntu@$COMPUTE_IP 'sudo cat /home/odb_sec/apps/oracle-sql-firewall-demo/aegis-vault/.env'
+ssh ubuntu@$COMPUTE_IP 'sudo cat /home/odb_sec/apps/oracle-sql-firewall-demo/luminaforge/.env'
 ```
 
 `DB_CONNECTION_STRING`, `DB_PASSWORD`, and `DB_CONTAINER` must match DB stack Outputs.
@@ -701,10 +697,8 @@ Destroy **compute stack** first, then **DB stack** (each stack → **Destroy** j
 
 | Problem | Fix |
 |---------|-----|
-| `curl` returns **000** / connection refused; SSH works | **Two layers:** (1) DB stack `allow_ssh_cidr` includes your IP — **Apply** DB stack; (2) firewalld on VM — `sudo firewall-cmd --permanent --add-port=3000/tcp --add-port=3001/tcp && sudo firewall-cmd --reload` (cloud-init does this on new VMs) |
-| Cannot open `:3000` / `:3001` from browser | Set `allow_ssh_cidr` on **DB stack** → **Plan → Apply**; confirm firewalld ports (above) |
-| **NJS-533** / ORA-12660 in app logs | OCI Base DB needs **thick mode**. Re-run bootstrap script (installs Instant Client 19.31) or rebuild after `ORACLE_CLIENT_LIBDIR` is set |
-| **NJS-045** (thick binary not found) | Apps need `serverExternalPackages: ["oracledb"]` in `next.config.ts` + `npm run build` on VM |
+| `curl` returns **000** / connection refused; SSH works | **Two layers:** (1) DB stack `allow_ssh_cidr` includes your IP — **Apply** DB stack; (2) ufw on VM — `sudo ufw allow 3000/tcp && sudo ufw allow 3001/tcp && sudo ufw --force enable` (cloud-init does this on new VMs) |
+| Cannot open `:3000` / `:3001` from browser | Set `allow_ssh_cidr` on **DB stack** → **Plan → Apply**; confirm `sudo ufw status` shows 3000/tcp and 3001/tcp ALLOW |
 | Apply OK but apps down | Wait 10–20 min; `sudo tail -f /var/log/sqlfw-install.log` |
 | `Permission denied` on `/var/log/sqlfw-install.log` | Use `sudo bash -c '.../sqlfw-install-apps.sh >> /var/log/sqlfw-install.log 2>&1'` — not `sudo cmd >> log` |
 | Compute **plan** fails on remote state | Set **`db_stack_id`** to DB stack OCID (`ocid1.ormstack...`); DB stack Apply must **Succeeded** first |
@@ -715,10 +709,9 @@ Destroy **compute stack** first, then **DB stack** (each stack → **Destroy** j
 | `MODULE_NOT_FOUND` for `oci-bootstrap-database.mjs` | Push `scripts/oci-bootstrap-database.mjs` to GitHub `main`; re-run install script |
 | DB listener timeout in log | DB not **AVAILABLE** yet; wait, then re-run install script |
 | Demo Control ORA errors / invalid package | Bootstrap incomplete — stop apps, re-run bootstrap (5C Option 2); check `AEGIS_DEMO_CONTROL` **VALID** |
-| Bootstrap **ORA-47630** (`allow list … does not exist`) | Fresh PDB has no `AEGIS_APP` allow-list yet; `configure_aegis_soc` must ignore this. Pull latest `Oracle_DB_Demo_Control_Grant.sql` and re-run bootstrap (5C Option 2) |
-| Bootstrap **ORA-01920** (`user name … conflicts`) | Partial bootstrap already created `AEGIS_APP` / `luminaforge`. Pull latest `oci-bootstrap-database.mjs` (syncs password + skips existing objects) and re-run bootstrap (5C Option 2) |
+| Bootstrap **ORA-47630** (`allow list … does not exist`) | Fresh PDB has no `AEGIS_APP` allow-list yet — bootstrap handles this idempotently. Re-run bootstrap (5C Option 2) |
+| Bootstrap **ORA-01920** (`user name … conflicts`) | Partial bootstrap already created `AEGIS_APP` / `luminaforge` — bootstrap handles this idempotently. Re-run bootstrap (5C Option 2) |
 | `git pull` **dubious ownership** on VM | Repo owned by `odb_sec` — use `sudo -u odb_sec git -C /home/odb_sec/apps/oracle-sql-firewall-demo pull origin main` before bootstrap |
-| LuminaForge Market search fails | Same as NJS-533 — thick mode + rebuild |
 | RM job permission denied | Add `manage orm-stacks` + `manage orm-jobs` (+ resource-family policies) |
 | VCN / subnet overlap error | Change `vcn_cidr` / subnet CIDRs; do not use VCN Wizard |
 | Updated zip but RM uses old config | Re-run `./package-stacks.sh` (script deletes old zips first), re-upload both stacks |

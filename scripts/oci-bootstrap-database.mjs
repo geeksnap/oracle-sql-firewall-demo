@@ -21,15 +21,6 @@ const require = createRequire(
 );
 const oracledb = require("oracledb");
 
-const clientLibDir =
-  process.env.ORACLE_CLIENT_LIBDIR ?? "/usr/lib/oracle/19.31/client64/lib";
-try {
-  oracledb.initOracleClient({ libDir: clientLibDir });
-} catch (e) {
-  const msg = String(e.message ?? e);
-  if (!msg.includes("already")) throw e;
-}
-
 const repoRoot = process.env.REPO_ROOT ?? join(dirname(fileURLToPath(import.meta.url)), "..");
 const REF_PDB = "AHDB2605_PDB1";
 const REF_APP_PW = "OracleFWDemo-123#";

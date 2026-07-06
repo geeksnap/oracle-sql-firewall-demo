@@ -1,21 +1,5 @@
 import oracledb, { type Connection, type Pool } from "oracledb";
 
-const oracleClientLibDir =
-  process.env.ORACLE_CLIENT_LIBDIR ?? "/usr/lib/oracle/19.31/client64/lib";
-
-let oracleClientReady = false;
-
-function ensureOracleClient(): void {
-  if (oracleClientReady) return;
-  try {
-    oracledb.initOracleClient({ libDir: oracleClientLibDir });
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e);
-    if (!msg.includes("already")) throw e;
-  }
-  oracleClientReady = true;
-}
-
 oracledb.outFormat = oracledb.OUT_FORMAT_OBJECT;
 oracledb.fetchAsString = [oracledb.CLOB];
 // Disable SQL-level pool pings — use protocol-level validation only.
@@ -40,7 +24,6 @@ export function getDbConfig() {
 }
 
 export async function getPool(): Promise<Pool> {
-  ensureOracleClient();
   if (pool) return pool;
 
   const { user, password, connectString } = getDbConfig();

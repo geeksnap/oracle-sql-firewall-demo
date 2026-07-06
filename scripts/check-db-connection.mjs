@@ -48,15 +48,6 @@ if (!password || !connectString) {
 const require = createRequire(import.meta.url);
 const oracledb = require(join(repoRoot, "aegis-vault", "node_modules", "oracledb"));
 
-const libDir = process.env.ORACLE_CLIENT_LIBDIR;
-if (libDir) {
-  try {
-    oracledb.initOracleClient({ libDir });
-  } catch (e) {
-    const msg = String(e?.message ?? e);
-    if (!msg.includes("already")) throw e;
-  }
-}
 
 let connection;
 try {

@@ -11,7 +11,7 @@ Two **correlated** Terraform stacks provision the full demo on OCI:
 
 Compute reads DB outputs from `../db/terraform.tfstate`, bootstraps the schema (`scripts/oci-bootstrap-database.mjs`), and starts both apps via systemd.
 
-**Compute bootstrap** (cloud-init) also installs Oracle Instant Client 19.31 (node-oracledb **thick mode** — required for OCI Base DB), opens **firewalld** ports 3000/3001, and sets `ORACLE_CLIENT_LIBDIR` on systemd units.
+**Compute bootstrap** (cloud-init) installs Node.js 22, clones the repo, builds both apps, opens **ufw** ports 3000/3001, and starts them via systemd. Apps connect to Oracle PDB using **node-oracledb Thin Mode** — no Oracle Client software required on the VM.
 
 ```text
 Presenter browser
@@ -88,7 +88,7 @@ Each zip contains only that stack’s `.tf` files (no `terraform.tfvars`, no loc
 | Variable | Example / notes |
 |----------|-----------------|
 | `region` | `ap-singapore-1` |
-| `compartment_id` | `ocid1.compartment.oc1..…` |
+| `compartment_id` | `ocid1.compartment.oc1..aaaaaaaaqcvjcdgexiyboeveqjc3izpzgk52mjmcf5qcelz2fvdbmhdg6b6q` |
 | `ssh_public_key` | Full line from `~/.ssh/id_ed25519_sqlfw.pub` |
 | `db_home_version` | **26ai** — minimum `23.26.0.0.0`; run `oci db version list` (see §1.4) and use latest `23.26+` in your region |
 | `allow_ssh_cidr` | Your public IP `/32` (or `0.0.0.0/0`) — controls SSH + app ports 3000/3001; **Apply** after change |
@@ -117,21 +117,21 @@ Each zip contains only that stack’s `.tf` files (no `terraform.tfvars`, no loc
 | `github_branch` | `main` |
 | `enable_waf` | `true` (default) — provisions LB + WAF + compute :80 redirect |
 
-> Push latest code to GitHub before deploy — especially `scripts/oci-bootstrap-database.mjs`, thick-mode `pool.ts`, and `serverExternalPackages: ["oracledb"]` in `next.config.ts`.
+> Push latest code to GitHub before deploy — especially `scripts/oci-bootstrap-database.mjs` and `serverExternalPackages: ["oracledb"]` in `next.config.ts`.
 
 > **Do not** rely on `db_state_path` in Resource Manager — there is no `../db/terraform.tfstate` on the job runner. Set **`db_stack_id`** instead.
 
 3. **Plan** → **Apply** (~**5–15 min** — VM + LB + WAF when `enable_waf = true`)
 4. **Outputs** → `compute_public_ip`, `aegis_vault_url`, `luminaforge_url`, **`luminaforge_waf_url`**
-5. SSH to compute (if needed): `ssh -i ~/.ssh/id_ed25519_sqlfw opc@<compute_public_ip>`
+5. SSH to compute (if needed): `ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@<compute_public_ip>`
 6. Tail bootstrap: `sudo tail -f /var/log/sqlfw-install.log` until `[SUCCESS] Apps + DB schema ready`
 
-Cloud-init installs Instant Client, Node 22, clones GitHub, builds apps, bootstraps DB, starts systemd, and (when `enable_waf = true`) configures nginx **:80 → WAF LB** (~10–20 min).
+Cloud-init installs Node.js 22 (via apt), clones GitHub, builds apps, bootstraps DB, starts systemd, and (when `enable_waf = true`) configures nginx **:80 → WAF LB** (~10–20 min). Apps use **node-oracledb Thin Mode** — no Oracle Client required.
 
 **Re-run bootstrap on existing VM:**
 
 ```bash
-ssh -i ~/.ssh/id_ed25519_sqlfw opc@<compute_public_ip> \
+ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@<compute_public_ip> \
   'sudo bash -c "/usr/local/bin/sqlfw-install-apps.sh >> /var/log/sqlfw-install.log 2>&1"'
 ```
 
@@ -272,7 +272,7 @@ Paste into **both** files:
 
 | After deploy | SSH user | Command |
 |--------------|----------|---------|
-| **Compute VM** | `opc` | `ssh -i ~/.ssh/id_ed25519_sqlfw opc@<compute_public_ip>` |
+| **Compute VM** | `opc` | `ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@<compute_public_ip>` |
 | **DBCS host** | `opc` | `ssh -i ~/.ssh/id_ed25519_sqlfw opc@<db_private_ip>` (VCN/VPN/bastion only) |
 
 ### 1.4 Oracle DB home version (26ai)
@@ -282,7 +282,7 @@ Oracle AI Database **26ai** requires DB home version **`23.26.0.0.0` or newer** 
 **Step 1 — set compartment and region** (must match `terraform/db/terraform.tfvars`):
 
 ```bash
-export COMPARTMENT_ID="ocid1.compartment.oc1..aaaaaaaaexample"
+export COMPARTMENT_ID="ocid1.compartment.oc1..aaaaaaaaqcvjcdgexiyboeveqjc3izpzgk52mjmcf5qcelz2fvdbmhdg6b6q"
 export OCI_REGION="ap-tokyo-1"    # same as region in terraform.tfvars / ~/.oci/config
 export SUPPRESS_LABEL_WARNING=True   # optional — silences OCI API key label warning
 ```
@@ -345,7 +345,7 @@ allow_ssh_cidr = "YOUR.PUBLIC.IP/32"   # recommended for demos
 
 > **Note:** `allow_ingress_cidr` in the compute stack example was removed — it is **not wired** in Terraform. Always set `allow_ssh_cidr` in the DB stack.
 
-**firewalld on the compute VM** is a second layer: cloud-init opens TCP 3000 and 3001. If HTTP times out from your laptop but SSH works, check both OCI security list (`allow_ssh_cidr` + Apply) and `sudo firewall-cmd --list-ports` on the VM.
+**ufw on the compute VM** (Ubuntu 24.04) is a second layer: cloud-init opens TCP 3000 and 3001. If HTTP times out from your laptop but SSH works, check both the OCI security list (`allow_ssh_cidr` + Apply) and `sudo ufw status` on the VM.
 
 DB subnet allows **1521** from the compute subnet only (automatic).
 
@@ -380,7 +380,7 @@ Edit **both** files. Minimum required:
 
 ```hcl
 region         = "your-region"
-compartment_id = "ocid1.compartment.oc1....."
+compartment_id = "ocid1.compartment.oc1..aaaaaaaaqcvjcdgexiyboeveqjc3izpzgk52mjmcf5qcelz2fvdbmhdg6b6q"
 ssh_public_key = "ssh-ed25519 AAAA... your-key"
 project_prefix = "sqlfw-demo"    # must match in BOTH stacks if you change it
 ```
@@ -493,14 +493,15 @@ Compute VM creation is **~2–5 minutes**; with `enable_waf = true` (default), a
 On first boot, `/usr/local/bin/sqlfw-install-apps.sh`:
 
 1. Creates OS user **`odb_sec`**
-2. Installs Node.js 22
+2. Installs Node.js 22 via NodeSource + `apt`
 3. Clones `github_repo_url` / `github_branch`
 4. Waits up to **30 min** for DB listener on port **1521**
 5. Runs `npm ci` + `npm run build` in `aegis-vault` and `luminaforge`
 6. Writes `.env` files with DB connection + passwords from DB stack
-7. Runs `node scripts/oci-bootstrap-database.mjs` (SYS → schema + SQL Firewall grants)
+7. Runs `node scripts/oci-bootstrap-database.mjs` (SYS → schema + SQL Firewall grants) — **Thin Mode**, no Instant Client needed
 8. Enables and starts `aegis-vault.service` and `luminaforge.service`
-9. When `enable_waf = true`: configures nginx on compute **:80** to redirect to the WAF load balancer (`WAF_LB_URL` in `/root/sqlfw-bootstrap.env`)
+9. Opens **ufw** ports 3000/3001 (+ 80 when WAF enabled)
+10. When `enable_waf = true`: installs nginx + configures compute **:80** → WAF load balancer redirect
 
 **Compute Terraform also provisions** (default `enable_waf = true`):
 
@@ -514,7 +515,7 @@ On first boot, `/usr/local/bin/sqlfw-install-apps.sh`:
 ```bash
 cd terraform/compute
 COMPUTE_IP=$(terraform output -raw compute_public_ip)
-ssh -i ~/.ssh/id_ed25519_sqlfw opc@$COMPUTE_IP \
+ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@$COMPUTE_IP \
   'sudo tail -f /var/log/sqlfw-install.log'
 ```
 
@@ -523,7 +524,7 @@ ssh -i ~/.ssh/id_ed25519_sqlfw opc@$COMPUTE_IP \
 **Verify services:**
 
 ```bash
-ssh -i ~/.ssh/id_ed25519_sqlfw opc@$COMPUTE_IP \
+ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@$COMPUTE_IP \
   'sudo systemctl is-active aegis-vault luminaforge'
 ```
 
@@ -642,17 +643,15 @@ cd ../db && terraform destroy
 | `db_home_version` invalid | Re-run §1.4: list all versions (Step 2), then filter with `jq` (Step 3). Empty filter = wrong region, unset `COMPARTMENT_ID`, or 26ai not in region yet |
 | Cloud-init failed | `sudo cat /var/log/sqlfw-install.log` on compute |
 | DB listener timeout | Confirm DB **AVAILABLE**; security list allows 1521 from compute subnet |
-| Bootstrap ORA errors | Stop apps; re-run bootstrap with env from `/root/sqlfw-bootstrap.env` (include `ORACLE_CLIENT_LIBDIR`) |
-| **NJS-533** / ORA-12660 | OCI Base DB needs thick mode — Instant Client 19.31 (cloud-init installs it) |
-| **NJS-045** | `serverExternalPackages: ["oracledb"]` in `next.config.ts` + rebuild on VM |
+| Bootstrap ORA errors | Stop apps; re-run bootstrap with env from `/root/sqlfw-bootstrap.env` |
 | Private GitHub clone fails | PAT in `github_repo_url`; or make repo public; update `/root/sqlfw-bootstrap.env` |
 | `MODULE_NOT_FOUND` oci-bootstrap-database.mjs | Push script to GitHub `main`; re-run install script |
 | Demo Control ORA-47605 | Re-run bootstrap or `@Oracle_DB_Demo_Control_Grant.sql` as SYS |
-| Bootstrap ORA-47630 | No allow-list row for `AEGIS_APP` yet on fresh PDB — update `Oracle_DB_Demo_Control_Grant.sql` (ignore `-47630` in `configure_aegis_soc`) and re-run bootstrap |
-| Bootstrap ORA-01920 | Users already exist from a partial run — update `oci-bootstrap-database.mjs` and re-run bootstrap |
+| Bootstrap ORA-47630 | No allow-list row for `AEGIS_APP` yet on fresh PDB — bootstrap handles this idempotently; just re-run bootstrap |
+| Bootstrap ORA-01920 | Users already exist from a partial run — bootstrap handles this idempotently; just re-run bootstrap |
 | `git pull` *dubious ownership* on compute | Run `sudo -u odb_sec git -C /home/odb_sec/apps/oracle-sql-firewall-demo pull origin main` — not `sudo git pull` as root |
-| SSH permission denied | `ssh -i ~/.ssh/id_ed25519_sqlfw opc@<ip>` |
-| Apps up but HTTP **000** / timeout | `allow_ssh_cidr` + **Apply** DB stack; firewalld 3000/3001 on VM |
+| SSH permission denied | `ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@<compute_public_ip>` |
+| Apps up but HTTP **000** / timeout | `allow_ssh_cidr` + **Apply** DB stack; check `sudo ufw status` on VM (ports 3000/3001 must be ALLOW) |
 | `terraform_remote_state` error (local) | Apply DB stack first; verify `db_state_path` |
 | Compute plan fails in Resource Manager | Set **`db_stack_id`** to DB stack OCID; do not use `db_state_path` alone |
 | Log permission denied re-running install | Use `sudo bash -c '.../sqlfw-install-apps.sh >> /var/log/sqlfw-install.log 2>&1'` |
@@ -662,7 +661,7 @@ cd ../db && terraform destroy
 ```bash
 sudo systemctl stop aegis-vault luminaforge   # if ORA-01940 (user connected)
 sudo bash -c 'source /root/sqlfw-bootstrap.env && cd /home/odb_sec/apps/oracle-sql-firewall-demo && \
-  sudo -u odb_sec env ORACLE_CLIENT_LIBDIR="$ORACLE_CLIENT_LIBDIR" LD_LIBRARY_PATH="$LD_LIBRARY_PATH" \
+  sudo -u odb_sec env \
   DB_CONNECT_STRING="$DB_CONNECT_STRING" DB_SYS_PASSWORD="$DB_SYS_PASSWORD" \
   DB_PDB_NAME="$DB_PDB_NAME" APP_DB_PASSWORD="$APP_DB_PASSWORD" \
   node scripts/oci-bootstrap-database.mjs'
@@ -721,18 +720,18 @@ terraform output -raw db_connection_string
 
 | Target | User | Port | Command |
 |--------|------|------|---------|
-| **Compute VM** (apps) | `opc` | 22 | `ssh -i ~/.ssh/id_ed25519_sqlfw opc@<compute_public_ip>` |
+| **Compute VM** (apps) | `ubuntu` | 22 | `ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@<compute_public_ip>` |
 | **DBCS host** | `opc` | 22 | `ssh -i ~/.ssh/id_ed25519_sqlfw opc@<db_private_ip>` |
-| **App processes** (on compute) | `odb_sec` | — | `sudo su - odb_sec` after SSH as `opc` |
+| **App processes** (on compute) | `odb_sec` | — | `sudo su - odb_sec` after SSH as `ubuntu` |
 
 **Bootstrap / service logs on compute:**
 
 ```bash
-ssh -i ~/.ssh/id_ed25519_sqlfw opc@<compute_public_ip> \
+ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@<compute_public_ip> \
   'sudo tail -100 /var/log/sqlfw-install.log'
-ssh -i ~/.ssh/id_ed25519_sqlfw opc@<compute_public_ip> \
+ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@<compute_public_ip> \
   'sudo systemctl status aegis-vault luminaforge'
-ssh -i ~/.ssh/id_ed25519_sqlfw opc@<compute_public_ip> \
+ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@<compute_public_ip> \
   'sudo journalctl -u aegis-vault -n 50 --no-pager'
 ```
 
@@ -843,4 +842,4 @@ WAF_LB_URL=http://<lb_public_ip> sudo -E bash scripts/setup-waf-port80-redirect.
 | `PORT` | `3000` | `3001` |
 | `LUMINAFORGE_BASE_URL` | `http://127.0.0.1:3001` | — |
 
-**systemd** also sets `ORACLE_CLIENT_LIBDIR=/usr/lib/oracle/19.31/client64/lib` and `LD_LIBRARY_PATH` for thick-mode oracledb.
+**systemd** runs apps as `odb_sec` user with `NODE_ENV=production`. Apps use **node-oracledb Thin Mode** — no Oracle Client env vars required.

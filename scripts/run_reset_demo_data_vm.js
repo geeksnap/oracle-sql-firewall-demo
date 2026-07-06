@@ -2,15 +2,6 @@ const fs = require("fs");
 const path = require("path");
 const oracledb = require("oracledb");
 
-const clientLibDir =
-  process.env.ORACLE_CLIENT_LIBDIR ?? "/usr/lib/oracle/23/client64/lib";
-
-try {
-  oracledb.initOracleClient({ libDir: clientLibDir });
-} catch (e) {
-  const msg = String(e?.message ?? e);
-  if (!msg.includes("already")) throw e;
-}
 
 function isSqlPlusDirective(line) {
   return /^(SET|PROMPT|WHENEVER|SPOOL|EXIT|QUIT|CONNECT|DISCONNECT)\b/i.test(line);

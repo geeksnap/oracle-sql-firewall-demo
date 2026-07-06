@@ -4,6 +4,7 @@ packages:
   - git
   - curl
   - jq
+  - ufw
 
 write_files:
   - path: /root/sqlfw-bootstrap.env
@@ -16,8 +17,6 @@ write_files:
       export GITHUB_REPO="${github_repo_url}"
       export GITHUB_BRANCH="${github_branch}"
       export APP_USER="${app_user}"
-      export ORACLE_CLIENT_LIBDIR="/usr/lib/oracle/19.31/client64/lib"
-      export LD_LIBRARY_PATH="/usr/lib/oracle/19.31/client64/lib"
       export WAF_LB_URL="${waf_lb_url}"
 
   - path: /usr/local/bin/sqlfw-install-apps.sh
@@ -30,22 +29,9 @@ write_files:
       id -u "$APP_USER" &>/dev/null || useradd -m -s /bin/bash "$APP_USER"
       install -d -o "$APP_USER" -g "$APP_USER" /home/$APP_USER/apps
 
-      # Oracle Linux firewalld blocks :3000/:3001 even when OCI security list allows them
-      if systemctl is-active firewalld &>/dev/null; then
-        firewall-cmd --permanent --add-port=3000/tcp
-        firewall-cmd --permanent --add-port=3001/tcp
-        firewall-cmd --reload
-      fi
-
-      # OCI Base DB requires node-oracledb thick mode (Instant Client) — thin mode fails NJS-533
-      ORACLE_IC_LIB="/usr/lib/oracle/19.31/client64/lib"
-      dnf install -y oracle-instantclient-release-el9
-      dnf install -y oracle-instantclient19.31-basic
-      echo "$ORACLE_IC_LIB" > /etc/ld.so.conf.d/oracle-instantclient.conf
-      ldconfig
-
-      curl -fsSL https://rpm.nodesource.com/setup_22.x | bash -
-      dnf install -y nodejs
+      # Install Node.js 22 via NodeSource (Ubuntu/Debian path)
+      curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+      apt-get install -y nodejs
 
       REPO_DIR="/home/$APP_USER/apps/oracle-sql-firewall-demo"
       if [ ! -d "$REPO_DIR/.git" ]; then
@@ -72,10 +58,10 @@ write_files:
         exit 1
       fi
 
-      cd "$REPO_DIR/aegis-vault" && sudo -u "$APP_USER" env LD_LIBRARY_PATH="$ORACLE_IC_LIB" ORACLE_CLIENT_LIBDIR="$ORACLE_IC_LIB" npm ci
-      cd "$REPO_DIR/luminaforge" && sudo -u "$APP_USER" env LD_LIBRARY_PATH="$ORACLE_IC_LIB" ORACLE_CLIENT_LIBDIR="$ORACLE_IC_LIB" npm ci
-      cd "$REPO_DIR/aegis-vault" && sudo -u "$APP_USER" env LD_LIBRARY_PATH="$ORACLE_IC_LIB" ORACLE_CLIENT_LIBDIR="$ORACLE_IC_LIB" npm run build
-      cd "$REPO_DIR/luminaforge" && sudo -u "$APP_USER" env LD_LIBRARY_PATH="$ORACLE_IC_LIB" ORACLE_CLIENT_LIBDIR="$ORACLE_IC_LIB" npm run build
+      cd "$REPO_DIR/aegis-vault" && sudo -u "$APP_USER" npm ci
+      cd "$REPO_DIR/luminaforge" && sudo -u "$APP_USER" npm ci
+      cd "$REPO_DIR/aegis-vault" && sudo -u "$APP_USER" npm run build
+      cd "$REPO_DIR/luminaforge" && sudo -u "$APP_USER" npm run build
 
       printf '%s\n' \
         "DB_USER=AEGIS_APP" \
@@ -101,8 +87,6 @@ write_files:
       echo "Bootstrapping database schema..."
       cd "$REPO_DIR"
       sudo -u "$APP_USER" env \
-        ORACLE_CLIENT_LIBDIR="$ORACLE_IC_LIB" \
-        LD_LIBRARY_PATH="$ORACLE_IC_LIB" \
         DB_CONNECT_STRING="$DB_CONNECT_STRING" \
         DB_SYS_PASSWORD="$DB_SYS_PASSWORD" \
         DB_PDB_NAME="$DB_PDB_NAME" \
@@ -114,11 +98,16 @@ write_files:
       systemctl start luminaforge.service aegis-vault.service
       systemctl is-active luminaforge.service aegis-vault.service
 
+      # Open app ports via ufw (Ubuntu 24.04 — replaces firewalld)
+      ufw allow 3000/tcp
+      ufw allow 3001/tcp
+      ufw --force enable
+
       install -m 755 "$REPO_DIR/scripts/show_config.sh" /usr/local/bin/show_config.sh
 
       if [ -n "$${WAF_LB_URL:-}" ]; then
         echo "Configuring compute :80 redirect to WAF load balancer ($${WAF_LB_URL})..."
-        dnf install -y nginx
+        apt-get install -y nginx
         WAF_LB_URL_CLEAN="$${WAF_LB_URL%/}"
         cat >/etc/nginx/conf.d/sqlfw-waf-redirect.conf <<NGINX
       # LuminaForge WAF entry — redirect compute :80 to Load Balancer (demo-waf-firewall)
@@ -131,10 +120,7 @@ write_files:
       NGINX
         nginx -t
         systemctl enable --now nginx
-        if systemctl is-active firewalld &>/dev/null; then
-          firewall-cmd --permanent --add-port=80/tcp
-          firewall-cmd --reload
-        fi
+        ufw allow 80/tcp
         echo "[SUCCESS] http://<compute-public-ip>/ redirects to $${WAF_LB_URL}/"
       fi
 
@@ -152,8 +138,6 @@ write_files:
       Type=simple
       User=${app_user}
       WorkingDirectory=/home/${app_user}/apps/oracle-sql-firewall-demo/aegis-vault
-      Environment=ORACLE_CLIENT_LIBDIR=/usr/lib/oracle/19.31/client64/lib
-      Environment=LD_LIBRARY_PATH=/usr/lib/oracle/19.31/client64/lib
       Environment=NODE_ENV=production
       ExecStart=/usr/bin/npm start
       Restart=on-failure
@@ -174,8 +158,6 @@ write_files:
       Type=simple
       User=${app_user}
       WorkingDirectory=/home/${app_user}/apps/oracle-sql-firewall-demo/luminaforge
-      Environment=ORACLE_CLIENT_LIBDIR=/usr/lib/oracle/19.31/client64/lib
-      Environment=LD_LIBRARY_PATH=/usr/lib/oracle/19.31/client64/lib
       Environment=NODE_ENV=production
       ExecStart=/usr/bin/npm start
       Restart=on-failure
