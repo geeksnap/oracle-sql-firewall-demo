@@ -222,6 +222,42 @@ OCI rejects passwords containing **`Oracle`** or **`sys`** (SYS admin password).
 
 ---
 
+## Step 2c — Configure DB for thin-mode clients (required)
+
+OCI Base Database may negotiate **Native Network Encryption (NNE)** on TCP port 1521. `node-oracledb` **Thin Mode** does not support NNE — connections fail with **NJS-533 / ORA-12660** unless the DB server accepts unencrypted TCP.
+
+Run this **once** on the DB VM **before** Step 3 Apply (or before re-running the compute install script).
+
+The DB host has **no public IP**. Reach it via **OCI Bastion** (after Step 2) or via **ProxyJump through the compute VM** (after Step 3).
+
+### Option A — OCI Bastion (before compute exists)
+
+1. **Identity → Bastion** → create a bastion in the demo compartment / VCN
+2. Create a **port-forwarding session** to the DB private IP, port **22**
+3. SSH as `opc` and run:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/geeksnap/oracle-sql-firewall-demo/main/scripts/configure-db-sqlnet-for-thin-mode.sh | sudo bash
+```
+
+### Option B — ProxyJump through compute (after Step 3)
+
+From your laptop (same SSH key as DB + compute):
+
+```bash
+export COMPUTE_IP="<compute_public_ip from Step 3 outputs>"
+
+ssh -A -i ~/.ssh/id_ed25519_sqlfw.key ubuntu@"$COMPUTE_IP" \
+  'ssh -o StrictHostKeyChecking=no opc@sqlfwdb.dbsnet.sqlfwvcn.oraclevcn.com \
+    "curl -fsSL https://raw.githubusercontent.com/geeksnap/oracle-sql-firewall-demo/main/scripts/configure-db-sqlnet-for-thin-mode.sh | sudo bash"'
+```
+
+Or copy the script from the repo and run it manually on the DB host as `opc`.
+
+Expected output: `[SUCCESS] sqlnet.ora updated — thin-mode clients can connect on TCP :1521`
+
+---
+
 ## Step 2b — GitHub repo URL (public or private)
 
 Cloud-init runs `git clone` as user `odb_sec` on the compute VM.
@@ -711,6 +747,7 @@ Destroy **compute stack** first, then **DB stack** (each stack → **Destroy** j
 | Demo Control ORA errors / invalid package | Bootstrap incomplete — stop apps, re-run bootstrap (5C Option 2); check `AEGIS_DEMO_CONTROL` **VALID** |
 | Bootstrap **ORA-47630** (`allow list … does not exist`) | Fresh PDB has no `AEGIS_APP` allow-list yet — bootstrap handles this idempotently. Re-run bootstrap (5C Option 2) |
 | Bootstrap **ORA-01920** (`user name … conflicts`) | Partial bootstrap already created `AEGIS_APP` / `luminaforge` — bootstrap handles this idempotently. Re-run bootstrap (5C Option 2) |
+| Bootstrap **NJS-533 / ORA-12660** (NNE negotiation failed) | Run [Step 2c](#step-2c--configure-db-for-thin-mode-clients-required) on the DB VM, then re-run `sqlfw-install-apps.sh` on compute |
 | `git pull` **dubious ownership** on VM | Repo owned by `odb_sec` — use `sudo -u odb_sec git -C /home/odb_sec/apps/oracle-sql-firewall-demo pull origin main` before bootstrap |
 | RM job permission denied | Add `manage orm-stacks` + `manage orm-jobs` (+ resource-family policies) |
 | VCN / subnet overlap error | Change `vcn_cidr` / subnet CIDRs; do not use VCN Wizard |
