@@ -99,6 +99,11 @@ write_files:
       systemctl is-active luminaforge.service aegis-vault.service
 
       # Open app ports via ufw (Ubuntu 24.04 — replaces firewalld)
+      # OCI Ubuntu images ship /etc/iptables/rules.v4 with a REJECT rule that runs
+      # before ufw chains, blocking :3000/:3001 even when ufw allows them.
+      iptables -D INPUT -j REJECT --reject-with icmp-host-prohibited 2>/dev/null || true
+      sed -i '/-A INPUT -j REJECT --reject-with icmp-host-prohibited/d' /etc/iptables/rules.v4
+      sed -i '/-A FORWARD -j REJECT --reject-with icmp-host-prohibited/d' /etc/iptables/rules.v4
       ufw allow 3000/tcp
       ufw allow 3001/tcp
       ufw --force enable
@@ -115,7 +120,7 @@ write_files:
           listen 80 default_server;
           listen [::]:80 default_server;
           server_name _;
-          return 302 $${WAF_LB_URL_CLEAN}\$$request_uri;
+          return 302 $${WAF_LB_URL_CLEAN}\$request_uri;
       }
       NGINX
         nginx -t
