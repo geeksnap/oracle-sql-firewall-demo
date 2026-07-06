@@ -68,11 +68,11 @@ export function ViolationsTable({
     (showSql ? 1 : 0);
 
   return (
-    <div className="glass-panel flex h-full flex-col rounded-xl p-4">
-      <h2 className="mb-4 text-sm font-semibold uppercase tracking-widest neon-text-cyan">
+    <div className="glass-panel flex h-full min-h-0 flex-col overflow-hidden rounded-xl p-4">
+      <h2 className="mb-4 shrink-0 text-sm font-semibold uppercase tracking-widest neon-text-cyan">
         {title}
       </h2>
-      <div className="flex-1 overflow-auto">
+      <div className="min-h-0 flex-1 overflow-y-auto">
         <table
           className={cn(
             "w-full text-left text-xs",

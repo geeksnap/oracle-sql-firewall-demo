@@ -237,9 +237,12 @@ export default function HomePage() {
   }, [luminaAlertUntil]);
 
   return (
-    <main className="min-h-screen bg-[#0a0a0f] p-4 lg:p-6">
-      <div className="mx-auto flex max-w-[1600px] flex-col gap-4">
-        <Header
+    <main className="flex h-[100dvh] items-center justify-center overflow-hidden bg-[#0a0a0f] p-4 lg:p-6">
+      <div
+        className="flex aspect-square w-[min(100%,calc(100dvh-2rem))] min-h-0 min-w-0 flex-col gap-4 overflow-hidden lg:w-[min(100%,calc(100dvh-3rem))]"
+      >
+        <div className="shrink-0">
+          <Header
           firewallActive={firewallActive}
           dbConnected={dbConnected}
           attackLabel={attackLabel}
@@ -249,15 +252,17 @@ export default function HomePage() {
           dbPackageVersion={dbPackageVersion}
           dbPackageOk={dbPackageOk}
           socAllowListEnforced={socAllowListEnforced}
-        />
+          />
+        </div>
 
-        <div className="grid min-h-[calc(100vh-8rem)] grid-cols-1 items-stretch gap-4 lg:grid-cols-[220px_1fr_340px]">
+        <div className="grid min-h-0 flex-1 grid-cols-1 items-stretch gap-4 overflow-hidden lg:grid-cols-[220px_1fr_340px]">
           <Sidebar active={section} onSelect={handleNavSelect} />
 
           <section
             className={cn(
-              "flex flex-col gap-4",
-              section === "dashboard" && "min-h-0 flex-1",
+              "flex min-h-0 flex-col gap-4 overflow-hidden",
+              (section === "dashboard" || section === "break-glass-control") &&
+                "min-h-0 flex-1",
             )}
           >
             {section === "dashboard" && (
@@ -278,9 +283,11 @@ export default function HomePage() {
             )}
 
             {section === "break-glass-control" && (
-              <div>
-                <MetricsCards metrics={metrics} />
-                <div className="mt-4">
+              <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden pt-4">
+                <div className="shrink-0">
+                  <MetricsCards metrics={metrics} />
+                </div>
+                <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
                   <DemoControlPanel
                     onFirewallGlobalChange={handleFirewallGlobalChange}
                     onStatusRefresh={handleStatusRefresh}
@@ -290,15 +297,21 @@ export default function HomePage() {
             )}
           </section>
 
-          <aside className="hidden flex-col gap-3 lg:flex">
-            <MonitoredAppsPanel apps={apps} />
-            <PolicyPanel apps={apps} />
-            <ViolationsTable
-              violations={violations}
-              title="Live Violations"
-              variant="compact"
-              showUser={false}
-            />
+          <aside className="hidden min-h-0 flex-col gap-3 overflow-hidden lg:flex">
+            <div className="shrink-0">
+              <MonitoredAppsPanel apps={apps} />
+            </div>
+            <div className="shrink-0">
+              <PolicyPanel apps={apps} />
+            </div>
+            <div className="min-h-0 flex-1">
+              <ViolationsTable
+                violations={violations}
+                title="Live Violations"
+                variant="compact"
+                showUser={false}
+              />
+            </div>
           </aside>
         </div>
       </div>

@@ -1,8 +1,5 @@
-# aegis-live-violations-compact Specification
+## MODIFIED Requirements
 
-## Purpose
-Right-rail **Live Violations** compact table on the Aegis Vault Dashboard — three columns, full ledger, no User column in the aside.
-## Requirements
 ### Requirement: Right-rail Live Violations uses a compact three-column layout
 
 The Aegis Vault right aside SHALL render the **Live Violations** panel with exactly three table columns: **Time**, **Source App**, and **Type**. The panel SHALL NOT display **User**, Action, or SQL columns in that location (Oracle `username` is not shown in the compact table). The panel SHALL list **all** violations in the current ledger (same set as Latest Threats, up to `METRICS_VIOLATION_LIMIT`) with internal scroll — not a twelve-row subset. The Live Violations panel outer height SHALL be fixed within the right rail and SHALL NOT grow when new violations arrive.
@@ -32,16 +29,3 @@ The Aegis Vault right aside SHALL render the **Live Violations** panel with exac
 
 - **WHEN** the user views Live Violations on the Dashboard
 - **THEN** the table SHALL NOT include a **User** column or username cells
-
-### Requirement: Full violation detail remains on main views
-
-Threat Feed, Violations (nav), and other non-compact `ViolationsTable` instances SHALL retain the full column layout including User, Action, and SQL unless explicitly configured otherwise.
-
-#### Scenario: Threat Feed keeps full columns
-- **WHEN** the presenter opens **Threat Feed**
-- **THEN** the violations table includes columns beyond Time, Source App, and Type (e.g. User, Action, SQL)
-
-#### Scenario: All Violations keeps full columns
-- **WHEN** the presenter opens **Violations** in the sidebar
-- **THEN** the violations table includes columns beyond Time, Source App, and Type
-

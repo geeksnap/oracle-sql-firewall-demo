@@ -18,6 +18,7 @@ function needsConfirm(scope: DemoScope, action: DemoAction): boolean {
   if (action === "purge-violations") return true;
   if (action === "clear-firewall-policy") return true;
   if (action === "init-default-policy") return true;
+  if (action === "reinit-default-transaction-data") return true;
   if (action === "generate-allow-list") return true;
   return false;
 }
@@ -51,6 +52,12 @@ function confirmMessage(scope: DemoScope, action: DemoAction): string {
     return (
       "Initialize default demo policy for luminaforge? Clears policy, starts SQL capture, " +
       "and seeds baseline benign SQL. You will finish with Stop SQL capture → Generate Allow List."
+    );
+  }
+  if (action === "reinit-default-transaction-data") {
+    return (
+      "Reinitialize LuminaForge transaction data to the seeded demo baseline? " +
+      "Cross-client ledger rows will be restored; user roles are not changed."
     );
   }
   return "Continue?";
@@ -118,7 +125,7 @@ export function DemoControlPanel({
   const run = (scope: DemoScope, action: DemoAction) => () => void runAction(scope, action);
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex w-full min-w-0 flex-col gap-3">
       <div className="glass-panel rounded-xl px-4 py-3">
         <h1 className="text-lg font-semibold text-[#fecaca]">Break-Glass Control</h1>
         <p className="mt-1 text-xs text-slate-500">

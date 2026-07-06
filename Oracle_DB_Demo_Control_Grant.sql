@@ -1,17 +1,18 @@
 -- ========================================================================
 -- Run once as SYS AS SYSDBA (PDB AHDB2605_PDB1)
 -- Demo Control: whitelisted SQL Firewall admin for AEGIS_APP via Aegis Vault UI
--- Package version: 2.9.0 (must match aegis-vault/build-info.json)
+-- Package version: 2.10.0 (must match aegis-vault/build-info.json)
 -- ========================================================================
 
 ALTER SESSION SET CONTAINER = AHDB2605_PDB1;
 
 @@sql/luminaforge_bootstrap_benign.sql
+@@sql/luminaforge_reinit_transactions.sql
 
 CREATE OR REPLACE PACKAGE SYS.aegis_demo_control
 AUTHID DEFINER
 AS
-  c_package_version CONSTANT VARCHAR2(32) := '2.9.0';
+  c_package_version CONSTANT VARCHAR2(32) := '2.10.0';
 
   FUNCTION package_version RETURN VARCHAR2;
   PROCEDURE configure_aegis_soc(p_msg OUT VARCHAR2);
@@ -31,6 +32,7 @@ AS
   PROCEDURE clear_firewall_policy(p_username IN VARCHAR2, p_msg OUT VARCHAR2);
   PROCEDURE init_default_demo_policy(p_username IN VARCHAR2, p_msg OUT VARCHAR2);
   PROCEDURE finalize_default_demo_policy(p_username IN VARCHAR2, p_msg OUT VARCHAR2);
+  PROCEDURE reinit_default_transaction_data(p_msg OUT VARCHAR2);
 END aegis_demo_control;
 /
 
@@ -523,6 +525,15 @@ AS
       'Default demo policy for LUMINAFORGE: allow-list from benign baseline. ' ||
       'SQL Monitor ON, Block SQL OFF (log only). Capture removed.';
   END finalize_default_demo_policy;
+
+  PROCEDURE reinit_default_transaction_data(p_msg OUT VARCHAR2) IS
+  BEGIN
+    ensure_pdb;
+    luminaforge.aegis_demo_reinit_transactions;
+    p_msg :=
+      'LuminaForge transactions reinitialized to seeded demo baseline ' ||
+      '(user_id 1 ledger + cross-client rows for users 3, 4, 5, 8, 9). User roles unchanged.';
+  END reinit_default_transaction_data;
 END aegis_demo_control;
 /
 
@@ -536,7 +547,7 @@ BEGIN
 END;
 /
 
-PROMPT === Package version (expect 2.8.1 in app header) ===
+PROMPT === Package version (expect 2.10.0 in app header) ===
 SELECT SYS.aegis_demo_control.package_version() AS db_package_version FROM dual;
 
 PROMPT === AEGIS_APP allow-list (should be DISABLED for SOC) ===
@@ -544,4 +555,4 @@ SELECT username, status, block, enforce
 FROM   sys.dba_sql_firewall_allow_lists
 WHERE  UPPER(username) = 'AEGIS_APP';
 
-PROMPT === [SUCCESS] AEGIS_APP Demo Control v2.9.0 — generate_allow_list added ===
+PROMPT === [SUCCESS] AEGIS_APP Demo Control v2.10.0 — reinit_default_transaction_data added ===

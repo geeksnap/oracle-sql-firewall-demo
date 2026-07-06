@@ -5,7 +5,7 @@ TBD - created by archiving change luminaforge-market-explorer-column-schema. Upd
 ## Requirements
 ### Requirement: Market Explorer supports column schema enumeration for a known table
 
-The Market Explorer search SHALL accept a UNION injection payload against `user_tab_columns` filtered by `table_name`, returning column metadata in the same four-column shape as `luxury_items`, without changing the vulnerable concat in `searchLuxuryItems`.
+The Market Explorer search SHALL accept a UNION injection payload against `user_tab_columns` filtered by `table_name`, returning column metadata in the same four-column shape as Market search records, without changing the vulnerable concat in `searchLuxuryItems`.
 
 #### Scenario: Column UNION payload returns column names and types
 
@@ -22,19 +22,14 @@ The Market Explorer search SHALL accept a UNION injection payload against `user_
 
 ### Requirement: Market Explorer renders column discovery rows distinctly
 
-When result rows include category `COLUMNS`, the results grid SHALL present column metadata, not luxury assets or table names.
+When result rows include category `COLUMNS`, the results grid SHALL present column metadata, not investment instruments or table names.
 
 #### Scenario: Column row display
 
 - **WHEN** a search returns rows with category `COLUMNS`
 - **THEN** the grid SHALL show the combined `column_name · data_type` label
 - **AND** the category badge SHALL read `COLUMNS`
-- **AND** price SHALL NOT be formatted as a luxury dollar amount (use “—” or equivalent)
-
-#### Scenario: Column leak banner
-
-- **WHEN** at least one result row has category `COLUMNS`
-- **THEN** the results section SHALL display a visible warning that column schema was exposed via UNION injection
+- **AND** price SHALL NOT be formatted as a market dollar amount (use “—” or equivalent)
 
 ### Requirement: Market Explorer documents the three-step Attack Point 1 ladder
 

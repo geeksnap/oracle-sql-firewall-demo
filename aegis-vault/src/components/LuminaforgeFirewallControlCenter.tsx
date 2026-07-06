@@ -38,7 +38,7 @@ export function LuminaforgeFirewallControlCenter({
       </h2>
       <p className="mb-2 text-[11px] text-slate-500">User luminaforge</p>
 
-      <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+      <div className="grid max-h-[min(52vh,28rem)] grid-cols-1 gap-2 overflow-y-auto pr-1 md:grid-cols-3">
         <ControlColumn label="3.1 Firewall control">
           <DemoControlButton
             compact
@@ -95,6 +95,13 @@ export function LuminaforgeFirewallControlCenter({
         </ControlColumn>
 
         <ControlColumn label="3.3 Firewall setup">
+          <DemoControlButton
+            compact
+            label="Reinitialize default transaction data"
+            variant="success"
+            disabled={busy}
+            onClick={run("reinit-default-transaction-data")}
+          />
           <DemoControlButton
             compact
             label="Initialize default demo policy"

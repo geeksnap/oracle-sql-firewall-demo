@@ -25,11 +25,15 @@ const repoRoot = process.env.REPO_ROOT ?? join(dirname(fileURLToPath(import.meta
 const REF_PDB = "AHDB2605_PDB1";
 const REF_APP_PW = "OracleFWDemo-123#";
 
-const scripts = [
+const defaultScripts = [
   "Oracle_DB_Setup.sql",
   "Oracle_DB_Aegis_Flush_Grant.sql",
   "Oracle_DB_Demo_Control_Grant.sql",
 ];
+
+const scripts = process.env.BOOTSTRAP_ONLY
+  ? [process.env.BOOTSTRAP_ONLY]
+  : defaultScripts;
 
 function isSqlPlusDirective(line) {
   return /^(SET|PROMPT|WHENEVER|SPOOL|EXIT|QUIT|CONNECT|DISCONNECT)\s/i.test(line);
@@ -258,6 +262,9 @@ async function main() {
         const bootstrapPath = join(repoRoot, "sql/luminaforge_bootstrap_benign.sql");
         const bootstrapSql = prepareSql(readFileSync(bootstrapPath, "utf8"), pdbName, appPassword);
         sql = sql.replace("@@sql/luminaforge_bootstrap_benign.sql", bootstrapSql);
+        const reinitPath = join(repoRoot, "sql/luminaforge_reinit_transactions.sql");
+        const reinitSql = prepareSql(readFileSync(reinitPath, "utf8"), pdbName, appPassword);
+        sql = sql.replace("@@sql/luminaforge_reinit_transactions.sql", reinitSql);
       }
 
       for (const block of splitSqlBlocks(sql)) {

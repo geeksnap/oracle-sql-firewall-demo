@@ -28,6 +28,7 @@ const SCOPE_ACTIONS: Record<DemoScope, DemoAction[]> = {
     "view-violations",
     "view-sql-monitor",
     "view-capture-status",
+    "reinit-default-transaction-data",
   ],
 };
 
@@ -93,6 +94,8 @@ function sqlForAction(scope: DemoScope, action: DemoAction): string {
       return `BEGIN SYS.aegis_demo_control.view_allow_list('${user}', :cur); END;`;
     case "view-capture-status":
       return `BEGIN SYS.aegis_demo_control.view_capture_status('${user}', :cur); END;`;
+    case "reinit-default-transaction-data":
+      return "BEGIN SYS.aegis_demo_control.reinit_default_transaction_data(:msg); END;";
     default:
       return "";
   }
@@ -145,6 +148,8 @@ function displaySql(scope: DemoScope, action: DemoAction): string {
       return `-- Via SYS.aegis_demo_control (definer)\nSELECT ... FROM dba_sql_firewall_allow_lists\nWHERE username = '${user}'`;
     case "view-capture-status":
       return `-- Via SYS.aegis_demo_control (definer)\nSELECT ... FROM dba_sql_firewall_captures\nWHERE username = '${user}'`;
+    case "reinit-default-transaction-data":
+      return "BEGIN SYS.aegis_demo_control.reinit_default_transaction_data(:msg); END;";
     default:
       return "";
   }

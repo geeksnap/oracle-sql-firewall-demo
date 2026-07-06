@@ -18,4 +18,4 @@
 
 - [x] 4.1 Update or add tests/fixtures affected by renamed market records and categories.
 - [x] 4.2 Run `npm run build` for `luminaforge` and perform a manual smoke test on `/market` for ticker, type, schema, and column flows.
-- [ ] 4.3 Deploy to demo VM/LB environment and verify presenter-facing examples match the new investment narrative.
+- [x] 4.3 Deploy to demo VM/LB environment and verify presenter-facing examples match the new investment narrative.

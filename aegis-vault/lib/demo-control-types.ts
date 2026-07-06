@@ -15,7 +15,8 @@ export type DemoAction =
   | "init-default-policy"
   | "view-violations"
   | "view-sql-monitor"
-  | "view-capture-status";
+  | "view-capture-status"
+  | "reinit-default-transaction-data";
 
 /** Shown in Demo Control modal after init-default-policy (capture left running). */
 export interface InitManualFinalizeGuide {

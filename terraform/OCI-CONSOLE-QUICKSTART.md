@@ -184,8 +184,8 @@ Each zip has `.tf` files at the **root** (no `.terraform/`, no `terraform.tfvars
 **Variables** (Configure variables panel — names must match exactly):
 
 ```hcl
-region          = "ap-singapore-1"              # same as Console region
-compartment_id  = "ocid1.compartment.oc1..aaaaaaaaqcvjcdgexiyboeveqjc3izpzgk52mjmcf5qcelz2fvdbmhdg6b6q"  # where VCN + DB are created
+region          = "ap-singapore-1"              # MUST match Console region (use same value in DB + compute stacks)
+compartment_id  = "ocid1.compartment.oc1..aaaaaaaaqcvjcdgexiyboeveqjc3izpzgk52mjmcf5qcelz2fvdbmhdg6b6q"  # replace with your compartment OCID
 ssh_public_key  = "ssh-ed25519 AAAA... sqlfw"   # full single-line .pub
 db_home_version = "26.0.0.0.0"                  # 26.x — use latest from "oci db version list" (see Check 26ai DB home version)
 allow_ssh_cidr  = "YOUR.PUBLIC.IP/32"   # or "0.0.0.0/0" for open demos — Apply required after change
@@ -247,7 +247,7 @@ From your laptop (same SSH key as DB + compute):
 ```bash
 export COMPUTE_IP="<compute_public_ip from Step 3 outputs>"
 
-ssh -A -i ~/.ssh/id_ed25519_sqlfw.key ubuntu@"$COMPUTE_IP" \
+ssh -A -i ~/.ssh/id_ed25519_sqlfw ubuntu@"$COMPUTE_IP" \
   'ssh -o StrictHostKeyChecking=no opc@sqlfwdb.dbsnet.sqlfwvcn.oraclevcn.com \
     "curl -fsSL https://raw.githubusercontent.com/geeksnap/oracle-sql-firewall-demo/main/scripts/configure-db-sqlnet-for-thin-mode.sh | sudo bash"'
 ```
@@ -354,8 +354,8 @@ ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@$COMPUTE_IP \
 **Variables** ( **`db_stack_id` is required** — without it Plan fails looking for local state):
 
 ```hcl
-region          = "ap-tokyo-1"                  # same as DB stack
-compartment_id  = "ocid1.compartment.oc1..aaaaaaaaqcvjcdgexiyboeveqjc3izpzgk52mjmcf5qcelz2fvdbmhdg6b6q"  # same as DB stack
+region          = "ap-tokyo-1"                  # MUST match DB stack and Console region
+compartment_id  = "ocid1.compartment.oc1..aaaaaaaaqcvjcdgexiyboeveqjc3izpzgk52mjmcf5qcelz2fvdbmhdg6b6q"  # replace with your compartment OCID
 ssh_public_key  = "ssh-ed25519 AAAA... sqlfw"   # same key as DB stack
 project_prefix  = "sqlfw-demo"                  # same as DB stack
 db_stack_id     = "ocid1.ormstack.oc1....."    # REQUIRED — DB stack OCID from Step 2
@@ -477,6 +477,18 @@ Expect: `[SUCCESS] Apps + DB schema ready`, both services `active`, HTTP **200**
 | **LuminaForge via WAF** | `http://<lb_public_ip>/` | **Terraform output** `luminaforge_waf_url` → WAF `demo-waf-firewall` → LB `sqlfw-demo-lb` → backend `:3001` |
 | **Compute :80 shortcut** | `http://<compute_public_ip>/` | Redirects to LB (configured automatically by cloud-init when `enable_waf = true`) |
 
+**LuminaForge routes** — use `http://<lb_public_ip>` (WAF) or `http://<compute_public_ip>:3001` (direct):
+
+| Tab | Path | Attack point |
+|-----|------|--------------|
+| Dashboard | `/` | — |
+| Market | `/market` | Point 1 (investment instrument search) |
+| Transactions | `/transactions` | Point 2 |
+| Statement | `/statement` | Point 3 |
+| Portfolio / Bulk | `/bulk` | Point 4 |
+
+Verify compute `:80` redirect: `curl -sI http://$COMPUTE_IP/ | grep -i location` → should reference `luminaforge_waf_url`.
+
 **WAF troubleshooting:** LuminaForge does **not** listen on port 80 on the compute VM. Backend set uses the compute **reserved private IP** (`:3001`). DB stack security list already allows **`compute_subnet_cidr` → TCP 3001** for LB health checks.
 
 ### 5B-waf — OCI WAF policy (provisioned by compute Terraform)
@@ -530,7 +542,7 @@ Presenter pattern on **`http://<lb_public_ip>/`**: canonical payload → **403**
 
 | Tab | Screen | Canonical (WAF **403**) | WAF bypass (LB **200**) |
 |-----|--------|-------------------------|-------------------------|
-| Market | Lux-Asset Search (step 1 only) | `' OR '1'='1` | `'/**/OR/**/'1'='1` (hint: “WAF bypass step 1”) |
+| Market | Market Explorer / investment search (step 1 only) | `' OR '1'='1` | `'/**/OR/**/'1'='1` (hint: “WAF bypass step 1”) |
 | Transactions | Ledger lookup | `x' OR user_id<>1 --` | `/**/OR/**/REGEXP_LIKE` / `HEXTORAW` (hint line 2) |
 | Statement | Tax Institution ID | `0 UNION SELECT …` | **No bypass** — use `:3001` for credential leak (UI fallback hint) |
 | Bulk | Batch note | `; UPDATE users …` | **No bypass** — use `:3001` for role escalation (UI fallback hint) |
@@ -565,13 +577,15 @@ Direct `:3001` regression: all four canonical attack payloads still work without
 
 ### 5C — Verify database schema (from compute VM)
 
-SSH as `opc`, then run checks as app user or with sqlplus.
+SSH as **`ubuntu`** to the compute VM. Use **`opc`** only when connecting to the **DB host** (Bastion or ProxyJump — see Step 2c).
 
 ```bash
 ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@$COMPUTE_IP
 ```
 
-**Option 1 — read bootstrap env and sqlplus**
+> **Note:** The compute VM has **no Oracle Client / sqlplus** by default. Prefer **Option 2** (re-run `oci-bootstrap-database.mjs`) for schema checks. Use Option 1 only if you install sqlplus or connect from SQL Developer.
+
+**Option 1 — read bootstrap env and sqlplus** (optional; requires sqlplus on VM or remote client)
 
 ```bash
 # Passwords and connect string (root-only file)
@@ -603,7 +617,7 @@ sqlplus "luminaforge/${APP_PW}@${CONNECT_STRING}"
 ```sql
 SELECT USER FROM dual;
 SELECT table_name FROM user_tables ORDER BY 1;
--- expect demo tables, e.g. USERS, PORTFOLIO, TRANSACTIONS, LUXURY_ITEMS, …
+-- expect demo tables, e.g. USERS, PORTFOLIO, TRANSACTIONS, LUXURY_ITEMS (investment catalog), …
 EXIT;
 ```
 
@@ -664,6 +678,24 @@ sudo systemctl start aegis-vault luminaforge
 
 Expect ending line: `[SUCCESS] Database bootstrap complete for PDB SQLFWPDB1`
 
+**Option 3 — apply Demo Control grant only** (e.g. after adding `reinit_default_transaction_data` in v2.10.0+):
+
+```bash
+sudo systemctl stop aegis-vault luminaforge
+sudo bash -c 'source /root/sqlfw-bootstrap.env && \
+  cd /home/odb_sec/apps/oracle-sql-firewall-demo && \
+  sudo -u odb_sec env \
+    DB_CONNECT_STRING="$DB_CONNECT_STRING" \
+    DB_SYS_PASSWORD="$DB_SYS_PASSWORD" \
+    DB_PDB_NAME="$DB_PDB_NAME" \
+    APP_DB_PASSWORD="$APP_DB_PASSWORD" \
+    BOOTSTRAP_ONLY=Oracle_DB_Demo_Control_Grant.sql \
+    node scripts/oci-bootstrap-database.mjs'
+sudo systemctl start aegis-vault luminaforge
+```
+
+Verify package: `curl -s http://127.0.0.1:3000/api/demo-control/status` on the VM (expect `dbPackageVersion` ≥ `2.10.0`).
+
 ---
 
 ### 5D — Verify apps ↔ database (end-to-end)
@@ -674,16 +706,21 @@ Expect ending line: `[SUCCESS] Database bootstrap complete for PDB SQLFWPDB1`
 4. Browse LuminaForge tabs → generate SQL traffic
 5. **Aegis Dashboard** → violations appear (or **Threat Feed**)
 6. Demo Control → **Stop SQL capture** → **Generate Allow List** → success
+7. **(Optional)** Demo Control → §3.3 **Reinitialize default transaction data** — resets transaction rows only (no full PDB re-seed)
 
 If step 3 fails with ORA error → schema/bootstrap issue (repeat 5C).  
 If apps show connection errors → check `.env` on compute:
 
 ```bash
-ssh ubuntu@$COMPUTE_IP 'sudo cat /home/odb_sec/apps/oracle-sql-firewall-demo/aegis-vault/.env'
-ssh ubuntu@$COMPUTE_IP 'sudo cat /home/odb_sec/apps/oracle-sql-firewall-demo/luminaforge/.env'
+ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@$COMPUTE_IP \
+  'sudo grep -E "^DB_" /home/odb_sec/apps/oracle-sql-firewall-demo/aegis-vault/.env'
+ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@$COMPUTE_IP \
+  'sudo grep -E "^DB_" /home/odb_sec/apps/oracle-sql-firewall-demo/luminaforge/.env'
+ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@$COMPUTE_IP \
+  'sudo grep -E "^export DB_" /root/sqlfw-bootstrap.env'
 ```
 
-`DB_CONNECTION_STRING`, `DB_PASSWORD`, and `DB_CONTAINER` must match DB stack Outputs.
+`DB_CONNECTION_STRING`, `DB_PASSWORD`, and `DB_CONTAINER` in **both** app `.env` files must match `/root/sqlfw-bootstrap.env` and DB stack Outputs. Aegis and LuminaForge must point at the **same** PDB.
 
 ---
 
@@ -697,7 +734,7 @@ ssh ubuntu@$COMPUTE_IP 'sudo cat /home/odb_sec/apps/oracle-sql-firewall-demo/lum
 | 4 | `/var/log/sqlfw-install.log` → `[SUCCESS]` | ☐ |
 | 5 | `systemctl is-active` → both **active** | ☐ |
 | 6 | Aegis + LuminaForge HTTP 200/307 | ☐ |
-| 7 | `sqlplus` AEGIS_APP + luminaforge login OK | ☐ |
+| 7 | Schema/bootstrap OK (Option 2 log or sqlplus if installed) | ☐ |
 | 8 | `AEGIS_DEMO_CONTROL` package **VALID** | ☐ |
 | 9 | LuminaForge `user_tables` count > 0 | ☐ |
 | 10 | Demo Control **Initialize default demo policy** OK | ☐ |
@@ -715,6 +752,7 @@ ssh ubuntu@$COMPUTE_IP 'sudo cat /home/odb_sec/apps/oracle-sql-firewall-demo/lum
 | **WAF policy JSON only** | Edit `terraform/compute/waf/*.json` → re-Apply compute stack (or `oci waf web-app-firewall-policy update` with `waf_policy_id` output) |
 | **`allow_ssh_cidr` only** | Update DB stack Variables → **Plan → Apply** on **DB stack** (not compute) |
 | **App code on GitHub** | Push to `main` → re-run install script on VM (or recreate compute instance) |
+| **Demo Control grant / package only** | `BOOTSTRAP_ONLY=Oracle_DB_Demo_Control_Grant.sql` via bootstrap script (§5C Option 3) |
 | **Private → public repo** | Remove token from `github_repo_url`; update `/root/sqlfw-bootstrap.env`; re-run install script |
 
 **Full refresh (new VM + latest zip):**
@@ -748,6 +786,8 @@ Destroy **compute stack** first, then **DB stack** (each stack → **Destroy** j
 | Bootstrap **ORA-47630** (`allow list … does not exist`) | Fresh PDB has no `AEGIS_APP` allow-list yet — bootstrap handles this idempotently. Re-run bootstrap (5C Option 2) |
 | Bootstrap **ORA-01920** (`user name … conflicts`) | Partial bootstrap already created `AEGIS_APP` / `luminaforge` — bootstrap handles this idempotently. Re-run bootstrap (5C Option 2) |
 | Bootstrap **NJS-533 / ORA-12660** (NNE negotiation failed) | Run [Step 2c](#step-2c--configure-db-for-thin-mode-clients-required) on the DB VM, then re-run `sqlfw-install-apps.sh` on compute |
+| Demo Control OK on LuminaForge but Aegis ORA / wrong DB | `.env` drift — compare both app `.env` files to `/root/sqlfw-bootstrap.env` (§5D) |
+| **Reinitialize default transaction data** unavailable | Re-apply grant v2.10.0+ (§5C Option 3); verify `/api/demo-control/status` |
 | `git pull` **dubious ownership** on VM | Repo owned by `odb_sec` — use `sudo -u odb_sec git -C /home/odb_sec/apps/oracle-sql-firewall-demo pull origin main` before bootstrap |
 | RM job permission denied | Add `manage orm-stacks` + `manage orm-jobs` (+ resource-family policies) |
 | VCN / subnet overlap error | Change `vcn_cidr` / subnet CIDRs; do not use VCN Wizard |

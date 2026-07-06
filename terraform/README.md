@@ -18,7 +18,7 @@ Presenter browser
        │
        ▼
 ┌──────────────────────────────────────────┐
-│  Compute VM (opc / odb_sec)              │
+│  Compute VM (SSH: ubuntu · apps: odb_sec) │
 │  Aegis Vault :3000   LuminaForge :3001   │
 └──────────────────┬───────────────────────┘
                    │ TCP 1521 (private VCN)
@@ -569,7 +569,8 @@ See **Phase 4** above and [`luminaforge/SPEC-luminaforge.md`](../luminaforge/SPE
 | SOC dashboard / violations | Aegis `:3000` |
 | Attack payloads / app tabs | LuminaForge `:3001` |
 | Toggle firewall / capture | Aegis → Demo Control |
-| Reset demo data (after Point 4) | `@luminaforge/scripts/reset-demo-data.sql` on PDB |
+| Reset transaction rows only (after demos) | Aegis → Demo Control → §3.3 **Reinitialize default transaction data** |
+| Full demo data reset (after Point 4) | `@luminaforge/scripts/reset-demo-data.sql` on PDB |
 
 ---
 
@@ -619,6 +620,7 @@ Compute stack reads DB outputs via:
 | `github_repo_url` | Yes | Git clone URL (PAT if private) |
 | `github_branch` | No | Branch to deploy (default `main`) |
 | `project_prefix` | No | Must match DB stack |
+| `enable_waf` | No | `true` (default) — LB + WAF + compute `:80` redirect; `false` for `:3001`-only |
 
 ---
 
@@ -655,6 +657,9 @@ cd ../db && terraform destroy
 | `terraform_remote_state` error (local) | Apply DB stack first; verify `db_state_path` |
 | Compute plan fails in Resource Manager | Set **`db_stack_id`** to DB stack OCID; do not use `db_state_path` alone |
 | Log permission denied re-running install | Use `sudo bash -c '.../sqlfw-install-apps.sh >> /var/log/sqlfw-install.log 2>&1'` |
+| Bootstrap **NJS-533 / ORA-12660** (NNE negotiation failed) | Run `scripts/configure-db-sqlnet-for-thin-mode.sh` on the DB host ([Quickstart Step 2c](OCI-CONSOLE-QUICKSTART.md#step-2c--configure-db-for-thin-mode-clients-required)), then re-run install/bootstrap on compute |
+| Demo Control OK on LuminaForge but Aegis ORA / wrong DB | `.env` drift — compare `aegis-vault/.env` and `luminaforge/.env` to values in `/root/sqlfw-bootstrap.env`; re-run cloud-init `.env` block or full `sqlfw-install-apps.sh` |
+| Demo Control **reinit** button unavailable | Re-apply grant package v2.10.0+: `BOOTSTRAP_ONLY=Oracle_DB_Demo_Control_Grant.sql` with bootstrap env (see Quickstart §5C Option 2) |
 
 **Re-run bootstrap manually on compute:**
 
@@ -794,6 +799,18 @@ sqlplus "sys/<sys_password>@<db_private_ip>:1521/<pdb_service_name> as sysdba"
 | **LuminaForge** (direct / bypass WAF) | **3001** | `http://<compute_public_ip>:3001` | `luminaforge_url` |
 | **LuminaForge via WAF** | **80** | `http://<lb_public_ip>/` | Compute output `luminaforge_waf_url` — LB + WAF `demo-waf-firewall` |
 | **Compute :80 shortcut** | **80** | `http://<compute_public_ip>/` | Redirects to LB (cloud-init when `enable_waf = true`) |
+
+**LuminaForge routes** (replace host with `luminaforge_waf_url` or `luminaforge_url`):
+
+| Tab | Path | Attack point |
+|-----|------|--------------|
+| Dashboard | `/` | — |
+| Market | `/market` | Point 1 (investment instrument search) |
+| Transactions | `/transactions` | Point 2 |
+| Statement | `/statement` | Point 3 |
+| Portfolio / Bulk | `/bulk` | Point 4 |
+
+Verify compute `:80` redirect: `curl -sI http://<compute_public_ip>/ | grep -i location` → should point at `luminaforge_waf_url`.
 
 **WAF path:** Internet → **LB :80** (`sqlfw-demo-waf-policy`) → backend **`<compute_private_ip>:3001`**. Use `luminaforge_waf_url` from compute stack outputs.
 

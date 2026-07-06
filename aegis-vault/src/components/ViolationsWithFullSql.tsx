@@ -44,7 +44,7 @@ export function ViolationsWithFullSql({
         className,
       )}
     >
-      <div className={cn("flex min-h-0 flex-col", tableFlex)}>
+      <div className={cn("flex min-h-0 flex-col overflow-hidden", tableFlex)}>
         <ViolationsTable
           violations={violations}
           title={title}
@@ -54,7 +54,7 @@ export function ViolationsWithFullSql({
           onRowSelect={setSelected}
         />
       </div>
-      <div className={cn("flex min-h-0 flex-col", detailFlex)}>
+      <div className={cn("flex min-h-0 flex-col overflow-hidden", detailFlex)}>
         <FullSqlPanel sqlText={selected?.sql_text ?? null} />
       </div>
     </div>
