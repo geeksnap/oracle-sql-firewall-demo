@@ -16,6 +16,10 @@ coverage/
 credentials.sso
 **/credentials.sso
 
+# Terraform variable files with real values (keep *.example)
+terraform.tfvars
+**/terraform.tfvars
+
 # Logs & runtime
 logs/
 .pids/

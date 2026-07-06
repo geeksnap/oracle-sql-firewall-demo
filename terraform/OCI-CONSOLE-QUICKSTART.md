@@ -97,7 +97,7 @@ Set `enable_waf = false` in compute stack Variables to skip LB/WAF (direct `:300
 | **Console region** | Select target region (top-right) — must match `region` variable in both stacks |
 | OCI compartment OCID | **Identity → Compartments** → Copy OCID (used as `compartment_id` variable) |
 | SSH key | `ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_sqlfw -N ""` → `cat ~/.ssh/id_ed25519_sqlfw.pub` |
-| 26ai DB version | Minimum **`23.26.0.0.0`** — run CLI in [Check 26ai DB home version](#check-26ai-db-home-version-before-db-stack) below |
+| 26ai DB version | Latest **`26.x.x.x.x`** (e.g. `26.0.0.0.0`) — run CLI in [Check 26ai DB home version](#check-26ai-db-home-version-before-db-stack) below |
 | Your public IP | `allow_ssh_cidr = "x.x.x.x/32"` on **DB stack** — must **Apply** after change (opens SSH + **3000/3001**) |
 | **GitHub repo** | **Push latest `main`** — compute VM clones GitHub (zip has no app code). **Public repo** = no PAT |
 | IAM — resources | `manage database-family`, `instance-family`, `virtual-network-family`, `load-balancers`, `waf-family` in target compartment |
@@ -108,7 +108,7 @@ Set `enable_waf = false` in compute stack Variables to skip LB/WAF (direct `:300
 
 ## Check 26ai DB home version (before DB stack)
 
-26ai requires **`db_home_version` ≥ `23.26.0.0.0`**. Versions appear as **`23.26.x.x.x`** (e.g. `23.26.0.0.0`, `23.26.1.0.0`). Do **not** use `26.0.0.0.0`.
+26ai versions appear as **`26.x.x.x.x`** (e.g. `26.0.0.0.0`). Use the latest `26.x` string available in your region.
 
 ```bash
 export COMPARTMENT_ID="ocid1.compartment.oc1..aaaaaaaaqcvjcdgexiyboeveqjc3izpzgk52mjmcf5qcelz2fvdbmhdg6b6q"   # same as compartment_id variable
@@ -123,28 +123,28 @@ oci db version list \
   --query "data[*].version" \
   --output table
 
-# 2) Filter 26ai (23.26+) — recommended: jq (reliable when JMESPath filter is empty)
+# 2) Filter 26ai (26.x) — recommended: jq (reliable when JMESPath filter is empty)
 oci db version list \
   --compartment-id "$COMPARTMENT_ID" \
   --region "$OCI_REGION" \
   --all \
   --output json \
-| jq -r '.data[].version | select(test("^23\\.26\\."))' | sort -V
+| jq -r '.data[].version | select(test("^26\\."))' | sort -V
 
-# 2b) JMESPath alternative — note backticks around 23.26, not single quotes
+# 2b) JMESPath alternative — note backticks around 26., not single quotes
 oci db version list \
   --compartment-id "$COMPARTMENT_ID" \
   --region "$OCI_REGION" \
   --all \
-  --query "data[?contains(version, \`23.26\`)].version" \
+  --query "data[?contains(version, \`26.\`)].version" \
   --output table
 ```
 
-Use the **highest** `23.26+` string from step 2 for **`db_home_version`**.
+Use the **highest** `26.x` string from step 2 for **`db_home_version`**.
 
-**If step 2 is empty:** verify `echo $COMPARTMENT_ID` is set, `OCI_REGION` matches your Console region, and **Base Database → Create** shows a **23.26.x** version. If the unfiltered list (step 1) stops at `21.0.0.0`, 26ai is not yet offered for Base Database in that region.
+**If step 2 is empty:** verify `echo $COMPARTMENT_ID` is set, `OCI_REGION` matches your Console region, and **Base Database → Create** shows a **26.x** version. If the unfiltered list (step 1) stops at `21.0.0.0`, 26ai is not yet offered for Base Database in that region.
 
-**Console alternative:** **Base Database → Create** → pick the latest **23.26.x** database version.
+**Console alternative:** **Base Database → Create** → pick the latest **26.x** database version.
 
 ---
 
@@ -187,7 +187,7 @@ Each zip has `.tf` files at the **root** (no `.terraform/`, no `terraform.tfvars
 region          = "ap-singapore-1"              # same as Console region
 compartment_id  = "ocid1.compartment.oc1..aaaaaaaaqcvjcdgexiyboeveqjc3izpzgk52mjmcf5qcelz2fvdbmhdg6b6q"  # where VCN + DB are created
 ssh_public_key  = "ssh-ed25519 AAAA... sqlfw"   # full single-line .pub
-db_home_version = "23.26.0.0.0"                 # >= 23.26.0.0.0 — use latest from "oci db version list" (see Check 26ai DB home version)
+db_home_version = "26.0.0.0.0"                  # 26.x — use latest from "oci db version list" (see Check 26ai DB home version)
 allow_ssh_cidr  = "YOUR.PUBLIC.IP/32"   # or "0.0.0.0/0" for open demos — Apply required after change
 pdb_name        = "SQLFWPDB1"
 project_prefix  = "sqlfw-demo"
@@ -702,7 +702,7 @@ Destroy **compute stack** first, then **DB stack** (each stack → **Destroy** j
 | Apply OK but apps down | Wait 10–20 min; `sudo tail -f /var/log/sqlfw-install.log` |
 | `Permission denied` on `/var/log/sqlfw-install.log` | Use `sudo bash -c '.../sqlfw-install-apps.sh >> /var/log/sqlfw-install.log 2>&1'` — not `sudo cmd >> log` |
 | Compute **plan** fails on remote state | Set **`db_stack_id`** to DB stack OCID (`ocid1.ormstack...`); DB stack Apply must **Succeeded** first |
-| `db_home_version` invalid / 400 InvalidParameter | Re-run [Check 26ai DB home version](#check-26ai-db-home-version-before-db-stack): list all versions first, then filter with `jq`. Empty = wrong region, unset `COMPARTMENT_ID`, or 26ai not in region |
+| `db_home_version` invalid / 400 InvalidParameter | Re-run [Check 26ai DB home version](#check-26ai-db-home-version-before-db-stack): list all versions first, then filter with `jq` for `26.x`. Empty = wrong region, unset `COMPARTMENT_ID`, or 26ai not in region |
 | Password error | Delete password vars; defaults: `"DbAdm12_Ab-cdXy"` / `"AppDb34_Cd-efGh"` (no `sys` / `Oracle`) |
 | Object Storage / subnet error | Upload latest zip (service gateway + security list egress); re-Apply DB stack |
 | Git clone fails on VM | Public repo URL without token, or PAT in `github_repo_url`; update `/root/sqlfw-bootstrap.env` and re-run install |
