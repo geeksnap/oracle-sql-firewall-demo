@@ -63,7 +63,7 @@ export async function fetchDemoSessionUser(
 }
 
 export async function listMyRecentTransactions(
-  days = 30,
+  limit = 10,
   userId = DEMO_USER_ID,
 ): Promise<TransactionRow[]> {
   return withConnection(async (conn) => {
@@ -71,9 +71,9 @@ export async function listMyRecentTransactions(
       `SELECT id, user_id, type, amount, asset, timestamp
        FROM transactions
        WHERE user_id = :userId
-         AND timestamp >= SYSTIMESTAMP - NUMTODSINTERVAL(:days, 'DAY')
-       ORDER BY timestamp DESC`,
-      { userId, days },
+       ORDER BY timestamp DESC, id DESC
+       FETCH FIRST :limit ROWS ONLY`,
+      { userId, limit },
     );
     return (result.rows ?? []).map((r) => ({
       id: Number(r.ID ?? r.id),

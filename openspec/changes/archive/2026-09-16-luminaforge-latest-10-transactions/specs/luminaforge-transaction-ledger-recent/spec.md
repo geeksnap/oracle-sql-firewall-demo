@@ -1,8 +1,11 @@
-# luminaforge-transaction-ledger-recent Specification
+## RENAMED Requirements
 
-## Purpose
-TBD - created by archiving change luminaforge-transaction-ledger-30d-asset. Update Purpose after archive.
-## Requirements
+### Requirement: Transaction History provides a latest-10 ledger shortcut for the demo user
+- FROM: `### Requirement: Transaction History provides a 30-day ledger shortcut for the demo user`
+- TO: `### Requirement: Transaction History provides a latest-10 ledger shortcut for the demo user`
+
+## MODIFIED Requirements
+
 ### Requirement: Transaction History provides a latest-10 ledger shortcut for the demo user
 The Transaction History page SHALL include a control labeled **Show all my latest 10 transaction records** that loads the current demo user's 10 most recent transactions into the **Ledger results** table without using the vulnerable lookup input. The shortcut SHALL be date-independent: it MUST NOT filter rows by any time window, so it returns results regardless of how old the seed data is.
 
@@ -22,11 +25,3 @@ The Transaction History page SHALL include a control labeled **Show all my lates
 - **WHEN** the recent-transactions API executes
 - **THEN** it SHALL use `oracledb` bind variables for `user_id` and the row limit
 - **AND** it SHALL NOT concatenate user input into SQL text
-
-### Requirement: Recent ledger API returns asset with each row
-The recent-transactions API SHALL return `asset` (when present in the database) alongside id, user_id, type, amount, and timestamp for each row.
-
-#### Scenario: Seeded demo user rows include asset
-- **WHEN** the demo database has `asset` populated on `transactions` for `user_id = 1`
-- **THEN** each row returned by the latest-10 shortcut SHALL include a non-empty `asset` value in the API response
-

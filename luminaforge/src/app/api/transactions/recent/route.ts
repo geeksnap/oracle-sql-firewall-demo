@@ -1,21 +1,21 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { listMyRecentTransactions } from "@/lib/db/safe-queries";
 
-/** Safe parameterized query — demo user transactions in the last N days. */
+/** Safe parameterized query — demo user's latest N transactions (date-independent). */
 export async function POST(req: NextRequest) {
   try {
-    let days = 30;
+    let limit = 10;
     try {
-      const body = (await req.json()) as { days?: unknown };
-      if (body.days != null) {
-        const n = Number(body.days);
-        if (Number.isFinite(n) && n > 0 && n <= 365) days = Math.floor(n);
+      const body = (await req.json()) as { limit?: unknown };
+      if (body.limit != null) {
+        const n = Number(body.limit);
+        if (Number.isFinite(n) && n > 0 && n <= 100) limit = Math.floor(n);
       }
     } catch {
-      // empty body → default 30 days
+      // empty body → default 10 rows
     }
 
-    const rows = await listMyRecentTransactions(days);
+    const rows = await listMyRecentTransactions(limit);
     return NextResponse.json({ rows });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

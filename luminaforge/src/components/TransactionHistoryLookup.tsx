@@ -39,14 +39,14 @@ export function TransactionHistoryLookup({ onResults }: Props) {
   const abortRef = useRef<AbortController | null>(null);
   const searchSeqRef = useRef(0);
 
-  async function showLast30Days() {
+  async function showLatest10() {
     const ran = await runRecent(async () => {
       setLoading(true);
       try {
         const res = await fetch("/api/transactions/recent", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ days: 30 }),
+          body: JSON.stringify({ limit: 10 }),
         });
         const data = (await res.json()) as { rows?: TxRow[]; error?: string };
         onResults(data.rows ?? [], data.error ?? null);
@@ -160,11 +160,11 @@ export function TransactionHistoryLookup({ onResults }: Props) {
 
       <button
         type="button"
-        onClick={() => void showLast30Days()}
+        onClick={() => void showLatest10()}
         disabled={loading}
         className="mt-3 w-full rounded-lg border border-[rgba(244,201,93,0.35)] bg-transparent px-4 py-2.5 text-sm font-medium text-[#f4c95d] transition-colors hover:bg-[rgba(244,201,93,0.08)] disabled:opacity-50 sm:w-auto"
       >
-        {loading ? "Loading…" : "Show all my last 30 days records"}
+        {loading ? "Loading…" : "Show all my latest 10 transaction records"}
       </button>
 
       <p className="mt-2 font-mono text-[10px] text-slate-600">{DEMO_HINT}</p>
