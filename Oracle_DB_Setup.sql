@@ -28,6 +28,15 @@ GRANT CONNECT, RESOURCE, CREATE SESSION TO luminaforge;
 ALTER USER AEGIS_APP QUOTA UNLIMITED ON users;
 ALTER USER luminaforge QUOTA UNLIMITED ON users;
 
+-- 4b. Prevent demo account password expiry / lockout
+-- The DEFAULT profile's finite PASSWORD_LIFE_TIME expires AEGIS_APP / luminaforge
+-- after ~180 days, causing ORA-28001 in the apps. Disable password aging and
+-- reuse limits so the long-lived demo accounts never expire (matches the live fix).
+ALTER PROFILE DEFAULT LIMIT PASSWORD_LIFE_TIME UNLIMITED;
+ALTER PROFILE DEFAULT LIMIT PASSWORD_GRACE_TIME UNLIMITED;
+ALTER PROFILE DEFAULT LIMIT PASSWORD_REUSE_TIME UNLIMITED;
+ALTER PROFILE DEFAULT LIMIT PASSWORD_REUSE_MAX UNLIMITED;
+
 -- 5. Cross-Monitoring Authorization (Granting Dictionary View access to Aegis SOC)
 -- Optimized using the Oracle 23c/26ai built-in monitoring role to eliminate view-name errors
 GRANT SQL_FIREWALL_VIEWER TO AEGIS_APP;
