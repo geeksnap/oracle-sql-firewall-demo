@@ -1,8 +1,8 @@
 region            = "ap-tokyo-1"
-compartment_id    = "ocid1.compartment.oc1..aaaaaaaaqcvjcdgexiyboeveqjc3izpzgk52mjmcf5qcelz2fvdbmhdg6b6q"
+compartment_id    = "ocid1.compartment.oc1..aaaaaaaaEXAMPLE_REPLACE_WITH_YOUR_COMPARTMENT_OCID"
 project_prefix    = "sqlfw-demo"
 
-# Paste contents of ~/.ssh/id_ed25519.pub
+# Paste contents of ~/.ssh/id_ed25519_sqlfw.pub
 ssh_public_key    = "ssh-ed25519 AAAA... your-key"
 
 # Restrict to your office / VPN CIDR in production; 0.0.0.0/0 opens SSH + app ports globally
@@ -14,8 +14,10 @@ allow_ssh_cidr    = "0.0.0.0/0"
 #     | jq -r '.data[].version | select(test("^26\\."))' | sort -V
 db_home_version   = "26.0.0.0.0"
 
-# Hardcoded OCI-compliant demo passwords (defaults in variables.tf)
-sys_password      = "DbAdm12_Ab-cdXy"
-app_db_password   = "AppDb34_Cd-efGh"
+# Set your own OCI-compliant passwords (do not reuse published demo values).
+# Rules: 9+ chars, 2 upper, 2 lower, 2 digit, 2 of _ - #; must NOT contain "Oracle" or "sys".
+# Omit these lines to use demo-only defaults from variables.tf (local workshops only).
+# sys_password      = "CHANGE_ME_SysAdm12_Xy"
+# app_db_password   = "CHANGE_ME_AppDb34_Gh"
 
 pdb_name          = "SQLFWPDB1"

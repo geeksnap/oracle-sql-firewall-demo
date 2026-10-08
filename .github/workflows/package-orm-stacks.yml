@@ -1,0 +1,48 @@
+# Build OCI Resource Manager stack zips and attach them to a GitHub Release.
+# Assets: sqlfw-db-stack.zip, sqlfw-compute-stack.zip
+name: Package OCI Resource Manager stacks
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Package stacks
+        run: |
+          cd terraform
+          chmod +x package-stacks.sh
+          ./package-stacks.sh
+          test -f sqlfw-db-stack.zip
+          test -f sqlfw-compute-stack.zip
+          unzip -l sqlfw-db-stack.zip | grep -E '(schema\.yaml|\.tf$)'
+          unzip -l sqlfw-compute-stack.zip | grep -E '(schema\.yaml|\.tf$)'
+
+      - name: Upload Release assets
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            terraform/sqlfw-db-stack.zip
+            terraform/sqlfw-compute-stack.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload workflow artifacts
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sqlfw-orm-stacks
+          path: |
+            terraform/sqlfw-db-stack.zip
+            terraform/sqlfw-compute-stack.zip
+          if-no-files-found: error
