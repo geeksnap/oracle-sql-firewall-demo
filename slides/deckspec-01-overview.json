@@ -1,0 +1,40 @@
+{
+  "theme": "dark",
+  "settings": {
+    "confidentiality": "Internal"
+  },
+  "slides": [
+    {
+      "type": "content",
+      "layout": "table",
+      "content": {
+        "title": "Oracle SQL Firewall: Database-Native Defense That Catches What WAF Misses",
+        "table": {
+          "headers": ["Briefing", "Key Points"],
+          "rows": [
+            [
+              "Problem Statement",
+              "A fintech app (LuminaForge) trusts user input in SQL — attackers inject via search/lookup fields to read other customers' transactions and credentials straight from the database."
+            ],
+            [
+              "Typical Challenges",
+              "Perimeter tools like WAF only read HTTP request text — signature rules are evaded with hex/XML encoding or JSON bodies, and they never see the actual SQL the database executes."
+            ],
+            [
+              "Proposed Solution",
+              "Oracle Database 26ai SQL Firewall enforces an allow-list of expected SQL + session context (IP, OS user, client program) inside the database kernel itself."
+            ],
+            [
+              "ADVANTAGE — Why SQL Firewall Wins",
+              "Inspects the real, decoded SQL executed — so payloads that bypass WAF signature rules (proven live in this demo) are still caught instantly, with zero app changes or added latency."
+            ],
+            [
+              "Product Used",
+              "Oracle Database 26ai SQL Firewall (core) + Aegis Vault SOC dashboard + LuminaForge attack-surface app. OCI WAF comparison is optional/extended — not required for the core story."
+            ]
+          ]
+        }
+      }
+    }
+  ]
+}
