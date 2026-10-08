@@ -29,7 +29,7 @@ Each scope is self-contained: **Goal → URLs → Steps → Say → Expect → E
 | **Aegis Vault** | http://161.33.154.45:3000/ | Always — SOC + Break-Glass |
 | **LuminaForge (direct, no WAF)** | http://161.33.154.45:3001/ | Scopes 1–3, 7 — **bypasses WAF** |
 | **LuminaForge via OCI WAF** | http://151.145.73.122/ | Scopes 4–6 — LB `:80` → WAF → `:3001` |
-| **Compute :80 shortcut** | `http://161.33.154.45/` | Optional redirect to WAF LB |
+| **Compute :80 shortcut** | `http://161.33.154.45/` | Optional; **currently nginx default** (no WAF redirect) — prefer LB URL above |
 
 If IPs rotate after redeploy, refresh from Terraform compute outputs (`show_config.sh` on the VM, or `terraform output -raw aegis_vault_url` / `luminaforge_url` / `luminaforge_waf_url`).
 
@@ -228,7 +228,7 @@ Same as **Scope 1 ready**. Safe to stop or continue to WAF act.
 
 | # | Action |
 |---|--------|
-| 4.1 | Open **LuminaForge via WAF**: http://151.145.73.122/ (or compute `:80` redirect) |
+| 4.1 | Open **LuminaForge via WAF**: http://151.145.73.122/ (do not use compute `:80` — nginx default today) |
 | 4.2 | Contrast with direct `:3001` in a second tab | Same UI, different path |
 | 4.3 | Draw the path on whiteboard / slide | Internet → **LB :80 + OCI WAF** → compute `:3001` → **Oracle DB + SQL Firewall** |
 | 4.4 | Say what WAF sees | HTTP request text / mirrored query string |

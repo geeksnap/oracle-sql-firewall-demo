@@ -40,6 +40,7 @@ Futuristic cyber-defense command center that monitors both itself (AEGIS_APP) an
 
 ### 6. Backend API (Node.js)
 - GET /api/violations?user=all
+- GET /api/build — app build number, `expectedDbPackageVersion` / live `dbPackageVersion` / `dbPackageOk`, and `socAllowListEnforced` (header badge)
 - WebSocket: violation events with source_app; periodic **Status Update** cycle (header label; internal poll interval via `POLL_INTERVAL_MS`)
 
 ### 7. Tech Stack

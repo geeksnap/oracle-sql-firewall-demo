@@ -798,9 +798,9 @@ sqlplus "sys/<sys_password>@<db_private_ip>:1521/<pdb_service_name> as sysdba"
 | **Aegis Vault** (SOC dashboard) | **3000** | `http://<compute_public_ip>:3000` | `aegis_vault_url` |
 | **LuminaForge** (direct / bypass WAF) | **3001** | `http://<compute_public_ip>:3001` | `luminaforge_url` |
 | **LuminaForge via WAF** | **80** | `http://<lb_public_ip>/` | Compute output `luminaforge_waf_url` — LB + WAF `demo-waf-firewall` |
-| **Compute :80 shortcut** | **80** | `http://<compute_public_ip>/` | Redirects to LB (cloud-init when `enable_waf = true`) |
+| **Compute :80 shortcut** | **80** | `http://<compute_public_ip>/` | Intended redirect to LB when `enable_waf = true`. **Live today:** nginx default (no `Location`) — use WAF entry URL |
 
-**Current live stack:** Aegis http://161.33.154.45:3000/ · LuminaForge direct http://161.33.154.45:3001/ · WAF entry http://151.145.73.122/ (see [`docs/DEMO-BRIEFING-SCRIPT.md`](../docs/DEMO-BRIEFING-SCRIPT.md)).
+**Current live stack:** Aegis http://161.33.154.45:3000/ · LuminaForge direct http://161.33.154.45:3001/ · WAF entry http://151.145.73.122/ (see [`docs/DEMO-BRIEFING-SCRIPT.md`](../docs/DEMO-BRIEFING-SCRIPT.md)). Compute `:80` is **not** redirecting on the current VM.
 
 **LuminaForge routes** (replace host with `luminaforge_waf_url` or `luminaforge_url`):
 

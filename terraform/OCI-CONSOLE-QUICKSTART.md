@@ -475,7 +475,7 @@ Expect: `[SUCCESS] Apps + DB schema ready`, both services `active`, HTTP **200**
 | **Aegis Vault** | `http://<compute_public_ip>:3000` | SOC dashboard, sidebar (Dashboard, Demo Control, …) |
 | **LuminaForge** (direct bypass) | `http://<compute_public_ip>:3001` | Demo fintech UI, nav tabs |
 | **LuminaForge via WAF** | `http://<lb_public_ip>/` | **Terraform output** `luminaforge_waf_url` → WAF `demo-waf-firewall` → LB `sqlfw-demo-lb` → backend `:3001` |
-| **Compute :80 shortcut** | `http://<compute_public_ip>/` | Redirects to LB (configured automatically by cloud-init when `enable_waf = true`) |
+| **Compute :80 shortcut** | `http://<compute_public_ip>/` | Intended: redirect to LB when `enable_waf = true`. **Current live stack:** nginx default page (no `Location`) — use the WAF LB URL below |
 
 **Current live stack** (update if IPs rotate):
 
@@ -702,7 +702,7 @@ sudo bash -c 'source /root/sqlfw-bootstrap.env && \
 sudo systemctl start aegis-vault luminaforge
 ```
 
-Verify package: `curl -s http://127.0.0.1:3000/api/demo-control/status` on the VM (expect `dbPackageVersion` ≥ `2.10.0`).
+Verify package: `curl -s http://127.0.0.1:3000/api/build` on the VM (expect `dbPackageVersion` ≥ `2.10.0`).
 
 ---
 
@@ -795,7 +795,7 @@ Destroy **compute stack** first, then **DB stack** (each stack → **Destroy** j
 | Bootstrap **ORA-01920** (`user name … conflicts`) | Partial bootstrap already created `AEGIS_APP` / `luminaforge` — bootstrap handles this idempotently. Re-run bootstrap (5C Option 2) |
 | Bootstrap **NJS-533 / ORA-12660** (NNE negotiation failed) | Run [Step 2c](#step-2c--configure-db-for-thin-mode-clients-required) on the DB VM, then re-run `sqlfw-install-apps.sh` on compute |
 | Demo Control OK on LuminaForge but Aegis ORA / wrong DB | `.env` drift — compare both app `.env` files to `/root/sqlfw-bootstrap.env` (§5D) |
-| **Reinitialize default transaction data** unavailable | Re-apply grant v2.10.0+ (§5C Option 3); verify `/api/demo-control/status` |
+| **Reinitialize default transaction data** unavailable | Re-apply grant v2.10.0+ (§5C Option 3); verify `/api/build` |
 | `git pull` **dubious ownership** on VM | Repo owned by `odb_sec` — use `sudo -u odb_sec git -C /home/odb_sec/apps/oracle-sql-firewall-demo pull origin main` before bootstrap |
 | RM job permission denied | Add `manage orm-stacks` + `manage orm-jobs` (+ resource-family policies) |
 | VCN / subnet overlap error | Change `vcn_cidr` / subnet CIDRs; do not use VCN Wizard |
