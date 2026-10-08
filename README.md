@@ -7,6 +7,16 @@
 | Aegis Vault | 3000 | `aegis-vault/` |
 | LuminaForge | 3001 | `luminaforge/` |
 
+### Current OCI demo URLs
+
+| Role | URL |
+|------|-----|
+| **Aegis Vault** | http://161.33.154.45:3000/ |
+| **LuminaForge (direct, no WAF)** | http://161.33.154.45:3001/ |
+| **LuminaForge via OCI WAF** | http://151.145.73.122/ |
+
+Presenter script: [`docs/DEMO-BRIEFING-SCRIPT.md`](docs/DEMO-BRIEFING-SCRIPT.md). If IPs change after redeploy, use Terraform outputs `aegis_vault_url`, `luminaforge_url`, `luminaforge_waf_url`.
+
 > LuminaForge is **intentionally vulnerable**. Use a **private** repository and restrict network access in any shared environment.
 
 ## Quick start (local)
@@ -39,6 +49,7 @@ OCI deploy and teardown: [`terraform/README.md`](terraform/README.md) · Console
 
 | Document | Purpose |
 |----------|---------|
+| [`docs/DEMO-BRIEFING-SCRIPT.md`](docs/DEMO-BRIEFING-SCRIPT.md) | Presenter script + current OCI demo URLs |
 | [`terraform/README.md`](terraform/README.md) | **OCI Terraform** — DB + Compute stacks, GitHub PAT, demo policy init |
 | [`terraform/OCI-CONSOLE-QUICKSTART.md`](terraform/OCI-CONSOLE-QUICKSTART.md) | One-page OCI Console deploy (no local `terraform apply`) |
 | [`aegis-vault/SPEC-aegis.md`](aegis-vault/SPEC-aegis.md) | Aegis Vault OpenSpec (Demo Control, SOC UI) |

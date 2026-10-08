@@ -800,6 +800,8 @@ sqlplus "sys/<sys_password>@<db_private_ip>:1521/<pdb_service_name> as sysdba"
 | **LuminaForge via WAF** | **80** | `http://<lb_public_ip>/` | Compute output `luminaforge_waf_url` — LB + WAF `demo-waf-firewall` |
 | **Compute :80 shortcut** | **80** | `http://<compute_public_ip>/` | Redirects to LB (cloud-init when `enable_waf = true`) |
 
+**Current live stack:** Aegis http://161.33.154.45:3000/ · LuminaForge direct http://161.33.154.45:3001/ · WAF entry http://151.145.73.122/ (see [`docs/DEMO-BRIEFING-SCRIPT.md`](../docs/DEMO-BRIEFING-SCRIPT.md)).
+
 **LuminaForge routes** (replace host with `luminaforge_waf_url` or `luminaforge_url`):
 
 | Tab | Path | Attack point |

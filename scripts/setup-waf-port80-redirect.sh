@@ -12,11 +12,11 @@
 # and later upgraded).
 #
 # Usage (on compute VM as root):
-#   WAF_LB_URL=http://168.110.61.146 sudo -E bash scripts/setup-waf-port80-redirect.sh
+#   WAF_LB_URL=http://151.145.73.122 sudo -E bash scripts/setup-waf-port80-redirect.sh
 # =============================================================================
 set -euo pipefail
 
-: "${WAF_LB_URL:?Set WAF_LB_URL to the sqlfw-demo-lb public IP, e.g. http://168.110.61.146}"
+: "${WAF_LB_URL:?Set WAF_LB_URL to the sqlfw-demo-lb public IP, e.g. http://151.145.73.122}"
 
 WAF_LB_URL="${WAF_LB_URL%/}"
 

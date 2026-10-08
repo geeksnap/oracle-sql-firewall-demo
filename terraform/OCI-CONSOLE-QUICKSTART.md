@@ -477,6 +477,14 @@ Expect: `[SUCCESS] Apps + DB schema ready`, both services `active`, HTTP **200**
 | **LuminaForge via WAF** | `http://<lb_public_ip>/` | **Terraform output** `luminaforge_waf_url` → WAF `demo-waf-firewall` → LB `sqlfw-demo-lb` → backend `:3001` |
 | **Compute :80 shortcut** | `http://<compute_public_ip>/` | Redirects to LB (configured automatically by cloud-init when `enable_waf = true`) |
 
+**Current live stack** (update if IPs rotate):
+
+| App | URL |
+|-----|-----|
+| Aegis Vault | http://161.33.154.45:3000/ |
+| LuminaForge (direct, no WAF) | http://161.33.154.45:3001/ |
+| LuminaForge via OCI WAF | http://151.145.73.122/ |
+
 **LuminaForge routes** — use `http://<lb_public_ip>` (WAF) or `http://<compute_public_ip>:3001` (direct):
 
 | Tab | Path | Attack point |
