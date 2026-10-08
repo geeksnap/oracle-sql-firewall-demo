@@ -173,6 +173,46 @@ export async function fetchAegisSocAllowListEnforced(): Promise<boolean> {
   });
 }
 
+/** SYS.aegis_demo_control.package_version() — null if package missing / unreachable. */
+export async function fetchDbPackageVersion(): Promise<string | null> {
+  try {
+    return await withConnection(async (connection) => {
+      const result = await connection.execute<Record<string, unknown>>(
+        `SELECT SYS.aegis_demo_control.package_version() AS package_version FROM dual`,
+      );
+      const row = result.rows?.[0];
+      if (!row) return null;
+      const raw = row.PACKAGE_VERSION ?? row.package_version;
+      if (raw == null) return null;
+      const version = String(raw).trim();
+      return version.length > 0 ? version : null;
+    });
+  } catch {
+    return null;
+  }
+}
+
+/** True when installed DB package version is >= expected (dot-separated integers). */
+export function isDbPackageVersionOk(
+  actual: string | null,
+  expected: string,
+): boolean {
+  if (!actual) return false;
+  const a = actual.split(".").map((p) => Number.parseInt(p, 10));
+  const e = expected.split(".").map((p) => Number.parseInt(p, 10));
+  if (a.some((n) => Number.isNaN(n)) || e.some((n) => Number.isNaN(n))) {
+    return actual === expected;
+  }
+  const len = Math.max(a.length, e.length);
+  for (let i = 0; i < len; i++) {
+    const av = a[i] ?? 0;
+    const ev = e[i] ?? 0;
+    if (av > ev) return true;
+    if (av < ev) return false;
+  }
+  return true;
+}
+
 export async function fetchGlobalFirewallEnabled(
   connection: Connection,
 ): Promise<boolean> {

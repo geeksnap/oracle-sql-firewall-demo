@@ -3,7 +3,8 @@ node_modules/
 .next/
 out/
 dist/
-build/
+# Root build output only — do not ignore app routes like aegis-vault/src/app/api/build/
+/build/
 coverage/
 .turbo/
 
