@@ -14,4 +14,4 @@
 
 - [x] 3.1 Local: submit `' OR '1'='1` against LB-mirrored fetch path — expect alert + inline error on **403**
 - [x] 3.2 Local: submit `ORCL` — expect **200**, results, no alert
-- [x] 3.3 Deploy to demo VM and verify alert on LB URL (`168.110.61.146`) vs no alert on direct `:3001`
+- [x] 3.3 Deploy to demo VM and verify alert on LB URL (`151.145.73.122`) vs no alert on direct `:3001`
