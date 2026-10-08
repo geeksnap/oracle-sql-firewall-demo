@@ -1,6 +1,6 @@
 ## Context
 
-**Shipped (Attack Point 2):** `waf-bypass-demo-payloads.ts` exports `ATTACK2_WAF_BYPASS_XML_HEX` using `/**/OR/**/` comment obfuscation plus `REGEXP_LIKE` / `DBMS_XMLGEN` / `HEXTORAW`. Secondary hint in `TransactionHistoryLookup.tsx`. Validated on OCI WAF (`168.110.61.146`).
+**Shipped (Attack Point 2):** `waf-bypass-demo-payloads.ts` exports `ATTACK2_WAF_BYPASS_XML_HEX` using `/**/OR/**/` comment obfuscation plus `REGEXP_LIKE` / `DBMS_XMLGEN` / `HEXTORAW`. Secondary hint in `TransactionHistoryLookup.tsx`. Validated on OCI WAF (`151.145.73.122`).
 
 **OCI WAF rules** (`terraform/waf-request-access-control-sqli.json`) block substrings in mirrored query strings:
 
@@ -70,7 +70,7 @@ Prefer **one** secondary line in UI to avoid clutter — use `/**/OR/**/` as def
 
 Implementation MUST NOT add hint text until live WAF test passes:
 
-1. Mirrored query on `168.110.61.146` → **200**
+1. Mirrored query on `151.145.73.122` → **200**
 2. Same outcome class as canonical (credentials for AP3; role escalation for AP4)
 3. No blocked substring in mirrored query (`UNION`, `UPDATE`, `user_id`, `' OR `)
 

@@ -12,7 +12,7 @@ Presenters need the same **secondary monospace hint** pattern on every attack in
   - Custom Statement (`/statement`) — Attack Point 3
   - Bulk Action (`/bulk`) — Attack Point 4
 - Keep canonical hint lines and `:3001` behaviour unchanged; no changes to `vulnerable-queries.ts`, API routes, or `waf-query-mirror.ts`.
-- Payload engineering SHALL validate each constant on live OCI WAF (`168.110.61.146`) with mirrored query strings before hint text is merged.
+- Payload engineering SHALL validate each constant on live OCI WAF (`151.145.73.122`) with mirrored query strings before hint text is merged.
 - Update presenter docs (`terraform/OCI-CONSOLE-QUICKSTART.md`, `luminaforge/README.md`, `SPEC-luminaforge.md`) with per-screen bypass rows and expected outcomes.
 - **Out of scope for v1:** Market Explorer steps 2–3 (UNION / `user_tables` / `user_tab_columns`) remain WAF-blocked on the LB path unless a hex-only payload is proven during implementation; document honestly if not feasible.
 

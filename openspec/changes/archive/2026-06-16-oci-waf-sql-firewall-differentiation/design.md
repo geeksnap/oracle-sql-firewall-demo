@@ -53,7 +53,7 @@ Sample hex `73656c6563742027524553272066726f6d206475616c` decodes to `select 'RE
 
 Add a **second monospace hint** below the existing `DEMO_HINT` in `TransactionHistoryLookup.tsx`:
 
-- Line 1 (unchanged): `x' OR user_id<>1 --` (WAF-blocked on `168.110.61.146`, works on `:3001`).
+- Line 1 (unchanged): `x' OR user_id<>1 --` (WAF-blocked on `151.145.73.122`, works on `:3001`).
 - Line 2 (new): complete XML/hex `REGEXP_LIKE` / `HEXTORAW` payload (WAF-bypass on LB URL).
 
 Rationale: satisfies “do not change other behaviour” — canonical payloads and UI flows stay intact.
