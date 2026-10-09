@@ -183,6 +183,7 @@ AS
       COALESCE(p_target_anchor, SYSTIMESTAMP AT TIME ZONE 'UTC');
     l_broken_refs NUMBER;
     l_demo_user NUMBER;
+    l_temporal_invalid NUMBER;
   BEGIN
     DELETE FROM luminaforge.transactions;
     DELETE FROM luminaforge.portfolio;
@@ -220,6 +221,14 @@ ${inserts.join("\n")}
     WHERE id = 1 AND username = 'demo_user';
     IF l_demo_user != 1 THEN
       RAISE_APPLICATION_ERROR(-20063, 'Demo seed identity validation failed');
+    END IF;
+    SELECT COUNT(*) INTO l_temporal_invalid
+    FROM luminaforge.transactions
+    WHERE timestamp IS NULL
+       OR timestamp >= CAST(SYS_EXTRACT_UTC(l_anchor) AS TIMESTAMP)
+       OR timestamp < rebase_timestamp(l_anchor, 0, -30, 0, 0);
+    IF l_temporal_invalid != 0 THEN
+      RAISE_APPLICATION_ERROR(-20068, 'Demo seed temporal validation failed');
     END IF;
     -- Caller owns COMMIT/ROLLBACK so the complete reset stays atomic.
   END initialize;

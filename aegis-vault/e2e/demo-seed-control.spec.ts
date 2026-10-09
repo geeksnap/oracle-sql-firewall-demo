@@ -81,6 +81,7 @@ test("authorized presenter confirms one reset without navigating", async ({
     data: {
       scope: "luminaforge",
       action: "initialize-demo-seed-data",
+      confirmation: "RESET LUMINAFORGE DEMO DATA",
     },
   });
   expect(denied.status()).toBe(401);

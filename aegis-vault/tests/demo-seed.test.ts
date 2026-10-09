@@ -105,6 +105,7 @@ test("route rejects unknown and unauthorized actions before database access", as
       body: JSON.stringify({
         scope: "luminaforge",
         action: "initialize-demo-seed-data",
+        confirmation: "RESET LUMINAFORGE DEMO DATA",
       }),
     },
   );
@@ -122,6 +123,7 @@ test("route rejects unknown and unauthorized actions before database access", as
       body: JSON.stringify({
         scope: "luminaforge",
         action: "initialize-demo-seed-data",
+        confirmation: "RESET LUMINAFORGE DEMO DATA",
       }),
     },
   );

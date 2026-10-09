@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 const CONFIRMATION = "RESET LUMINAFORGE DEMO DATA";
@@ -41,16 +41,15 @@ export function InitializeDemoSeedModal({
   const [result, setResult] = useState<SeedResponse | null>(null);
   const submitted = useRef(false);
 
-  useEffect(() => {
-    if (open) {
-      setConfirmation("");
-      setResult(null);
-      setBusy(false);
-      submitted.current = false;
-    }
-  }, [open]);
-
   if (!open) return null;
+
+  function close() {
+    setConfirmation("");
+    setResult(null);
+    setBusy(false);
+    submitted.current = false;
+    onClose();
+  }
 
   async function initialize() {
     if (
@@ -69,6 +68,7 @@ export function InitializeDemoSeedModal({
         body: JSON.stringify({
           scope: "luminaforge",
           action: "initialize-demo-seed-data",
+          confirmation,
         }),
       });
       const data = (await response.json()) as SeedResponse;
@@ -152,7 +152,7 @@ export function InitializeDemoSeedModal({
         <div className="mt-6 flex justify-end gap-3">
           <button
             type="button"
-            onClick={onClose}
+            onClick={close}
             disabled={busy}
             className="rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-300 disabled:opacity-50"
           >

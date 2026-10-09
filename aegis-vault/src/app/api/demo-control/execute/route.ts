@@ -15,14 +15,14 @@ import {
 } from "@lib/break-glass-grant";
 
 export async function POST(request: NextRequest) {
-  let body: { scope?: string; action?: string };
+  let body: { scope?: string; action?: string; confirmation?: string };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { scope, action } = body;
+  const { scope, action, confirmation } = body;
   if (!scope || !action || !isValidDemoRequest(scope, action)) {
     return NextResponse.json(
       { error: "Invalid scope or action for demo control" },
@@ -31,6 +31,12 @@ export async function POST(request: NextRequest) {
   }
 
   if (action === "initialize-demo-seed-data") {
+    if (confirmation !== "RESET LUMINAFORGE DEMO DATA") {
+      return NextResponse.json(
+        { error: "Exact demo seed confirmation is required" },
+        { status: 400 },
+      );
+    }
     if (scope !== "luminaforge" || !hasSameOrigin(request)) {
       return NextResponse.json(
         { error: "Demo seed initialization requires an authorized same-origin request" },

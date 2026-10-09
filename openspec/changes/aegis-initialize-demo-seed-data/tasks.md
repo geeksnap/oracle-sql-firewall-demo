@@ -31,7 +31,7 @@
 
 - [x] 5.1 Run the reset against a disposable Oracle demo schema containing mutated, missing, extra, and FK-constrained rows; verify all four tables match the manifest, all temporal expectations use one anchor, and a second fixed-anchor run is identical.
 - [x] 5.2 Run LuminaForge's benign session, market, portfolio, recent-transaction, and all four attack-point checks after reset; verify expected IDs/data remain available and SQL Firewall configuration plus existing violation logs are unchanged.
-- [ ] 5.3 Run Aegis and LuminaForge typecheck/lint/test/build commands plus strict OpenSpec validation; verify all commands pass and review the final diff to confirm it contains no secret, Thick Mode dependency, caller-selected schema, or unscoped destructive SQL.
+- [x] 5.3 Run Aegis and LuminaForge typecheck/lint/test/build commands plus strict OpenSpec validation; verify all commands pass and review the final diff to confirm it contains no secret, Thick Mode dependency, caller-selected schema, or unscoped destructive SQL.
 
 ## Workflow follow-up
 
