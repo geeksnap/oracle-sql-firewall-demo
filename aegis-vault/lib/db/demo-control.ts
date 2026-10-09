@@ -226,6 +226,8 @@ export interface DemoExecuteResult {
     luxuryItems: number;
   };
   rolledBack?: boolean;
+  mutationAttempted?: boolean;
+  error?: string;
 }
 
 async function executeInitDefaultPolicy(): Promise<DemoExecuteResult> {
@@ -297,20 +299,24 @@ export async function executeDemoAction(
         sql,
         output: result.ok
           ? `Seed initialized at ${result.anchor}\nUSERS=${result.counts?.users} | PORTFOLIO=${result.counts?.portfolio} | TRANSACTIONS=${result.counts?.transactions} | LUXURY_ITEMS=${result.counts?.luxuryItems}`
-          : `${result.error}\nRollback ${result.rolledBack ? "completed" : "could not be confirmed"}.`,
+          : result.error ?? "Demo seed initialization failed",
+        error: result.ok ? undefined : result.error,
         ok: result.ok,
         mutating: true,
         seedAnchor: result.anchor,
         seedCounts: result.counts,
         rolledBack: result.rolledBack,
+        mutationAttempted: true,
       };
     } catch (error) {
       return {
         sql,
         output: error instanceof Error ? error.message : "Demo seed initialization failed",
+        error: error instanceof Error ? error.message : "Demo seed initialization failed",
         ok: false,
         mutating: true,
         rolledBack: false,
+        mutationAttempted: false,
       };
     }
   }

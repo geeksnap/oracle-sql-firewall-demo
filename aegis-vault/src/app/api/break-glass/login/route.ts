@@ -25,10 +25,14 @@ export async function POST(request: Request) {
     // Demo mode: password accepted but not validated or logged
     void body.password;
 
-    const grant =
-      process.env.DEMO_SEED_RESET_ENABLED === "true"
-        ? issueBreakGlassGrant(username)
-        : null;
+    let grant: string | null = null;
+    if (process.env.DEMO_SEED_RESET_ENABLED === "true") {
+      try {
+        grant = issueBreakGlassGrant(username);
+      } catch {
+        grant = null;
+      }
+    }
     const violation = createBreakGlassViolation(username);
     pushBreakGlassViolation(violation);
     emitBreakGlassViolation(violation);
@@ -37,10 +41,13 @@ export async function POST(request: Request) {
       violation,
       seedGrantIssued: grant !== null,
     });
-    if (grant) setBreakGlassGrantCookie(response, grant);
+    if (grant) setBreakGlassGrantCookie(response, grant, request);
     return response;
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+    const raw = err instanceof Error ? err.message : String(err);
+    const message = /BREAK_GLASS_GRANT_SECRET|secret/i.test(raw)
+      ? "Break-glass authorization is not configured"
+      : raw;
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

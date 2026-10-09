@@ -6,10 +6,16 @@ import { cn } from "@/lib/utils";
 interface BreakGlassModalProps {
   open: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (result: { seedGrantIssued: boolean }) => void;
+  requireSeedGrant?: boolean;
 }
 
-export function BreakGlassModal({ open, onClose, onSuccess }: BreakGlassModalProps) {
+export function BreakGlassModal({
+  open,
+  onClose,
+  onSuccess,
+  requireSeedGrant = false,
+}: BreakGlassModalProps) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -30,17 +36,26 @@ export function BreakGlassModal({ open, onClose, onSuccess }: BreakGlassModalPro
     try {
       const res = await fetch("/api/break-glass/login", {
         method: "POST",
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: user, password }),
       });
-      const data = (await res.json()) as { error?: string };
+      const data = (await res.json()) as {
+        error?: string;
+        seedGrantIssued?: boolean;
+      };
       if (!res.ok) {
         setError(data.error ?? "Login failed");
         return;
       }
+      const seedGrantIssued = data.seedGrantIssued === true;
+      if (requireSeedGrant && !seedGrantIssued) {
+        setError("Demo seed initialization is not enabled on this host");
+        return;
+      }
       setUsername("");
       setPassword("");
-      onSuccess();
+      onSuccess({ seedGrantIssued });
     } catch {
       setError("Could not reach break-glass service");
     } finally {

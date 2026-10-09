@@ -12,7 +12,8 @@ Futuristic cyber-defense command center that monitors both itself (AEGIS_APP) an
 
 ### 3. Layout
 - Header: Logo + “AEGIS VAULT” + Global Firewall Status
-- Left Sidebar (**Command Nav**): **Dashboard** | **Break-Glass Control** (bottom only)
+- Left Sidebar (**Command Nav**): **Dashboard** | **Break-Glass Control** (filled destructive, bottom) with **Initialize Demo Seed Data** (outline destructive action, not a nav section) directly below it
+- Application frame: centered landscape **12:9** (4:3, not 1:1 and not 16:9), sized to the largest 12:9 rectangle that fits the viewport
 - Center: 3D Shield Globe + Live Metrics Cards + Latest Threats (Dashboard), or Break-Glass presenter panel when selected
 - **Metrics cards:** Total Violations, LuminaForge Hits, and Aegis Hits count from the latest **200** `dba_sql_firewall_violations` rows per status update (not capped at 50). Fourth card label: **Last Update** (timestamp of last successful refresh; API field `last_poll_at` unchanged).
 - Right: **Live Violations** (compact: Time, Source App, Type) + Monitored Apps / Policy panels
@@ -29,8 +30,9 @@ Futuristic cyber-defense command center that monitors both itself (AEGIS_APP) an
 ### 3.2 Initialize Demo Seed Data
 - The sidebar renders **Initialize Demo Seed Data** directly below **Break-Glass Control**. It is a destructive action, not a navigation destination.
 - The action requires a current server-verifiable break-glass grant and an exact typed confirmation: `RESET LUMINAFORGE DEMO DATA`.
+- Break-glass login issues that grant only when demo reset is enabled; the client MUST NOT open confirmation unless the login response reports `seedGrantIssued: true`. Grant cookies MUST be usable on the HTTP demo origin (`Secure` only on HTTPS).
 - It is fail-closed unless demo reset is explicitly enabled and the fixed target is `LUMINAFORGE`; callers cannot provide SQL, schemas, tables, or a clock value.
-- Success displays the one Oracle UTC target anchor and row counts for `USERS`, `PORTFOLIO`, `TRANSACTIONS`, and `LUXURY_ITEMS`. Failure displays sanitized rollback status.
+- Success displays the one Oracle UTC target anchor and row counts for `USERS`, `PORTFOLIO`, `TRANSACTIONS`, and `LUXURY_ITEMS`. Authorization or configuration failures display a sanitized error without rollback copy. Rollback status is shown only when a database mutation was attempted.
 - The reset does not change Aegis operational state, synthetic break-glass events, SQL Firewall configuration, captures, allow-lists, enforcement, or violation logs.
 
 ### 4. Multi-App Monitoring (Key Feature)

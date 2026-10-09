@@ -63,6 +63,7 @@ write_files:
       cd "$REPO_DIR/aegis-vault" && sudo -u "$APP_USER" npm run build
       cd "$REPO_DIR/luminaforge" && sudo -u "$APP_USER" npm run build
 
+      BREAK_GLASS_GRANT_SECRET="$(openssl rand -base64 48 | tr -d '\n')"
       printf '%s\n' \
         "DB_USER=AEGIS_APP" \
         "DB_PASSWORD=$APP_DB_PASSWORD" \
@@ -71,7 +72,12 @@ write_files:
         "PORT=3000" \
         "POLL_INTERVAL_MS=3000" \
         "LUMINAFORGE_BASE_URL=http://127.0.0.1:3001" \
+        "DEMO_SEED_RESET_ENABLED=true" \
+        "DEMO_ENVIRONMENT=demo" \
+        "DEMO_SEED_SCHEMA=LUMINAFORGE" \
+        "BREAK_GLASS_GRANT_SECRET=$BREAK_GLASS_GRANT_SECRET" \
         > "$REPO_DIR/aegis-vault/.env"
+      unset BREAK_GLASS_GRANT_SECRET
 
       printf '%s\n' \
         "DB_USER=luminaforge" \

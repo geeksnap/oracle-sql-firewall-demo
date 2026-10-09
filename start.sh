@@ -238,10 +238,29 @@ start_local() {
   echo ""
 }
 
+ensure_demo_seed_env() {
+  local env_file="$AEGIS_DIR/.env"
+  if [ ! -f "$env_file" ]; then
+    echo -e "  ${YELLOW}!${NC} Skipping demo-seed env ensure (missing $env_file)"
+    return 0
+  fi
+  if bash "$SCRIPTS/ensure-demo-seed-env.sh" "$env_file"; then
+    echo -e "  ${GREEN}✓${NC} Demo seed env keys present (secret not printed)"
+  else
+    echo -e "  ${RED}✗${NC} Could not ensure demo seed env keys"
+    return 1
+  fi
+}
+
 start_oci() {
   echo -e "\n${CYAN}◎ OCI compute — starting systemd services${NC}"
   echo -e "${YELLOW}────────────────────────────────────────────${NC}"
   echo -e "  ${YELLOW}Note:${NC} Base DB must be AVAILABLE in OCI before apps can connect."
+  ensure_demo_seed_env
+  if [ "$TARGET" != "lumina" ]; then
+    echo -e "  ${CYAN}→${NC} Restarting aegis-vault.service to load demo-seed .env"
+    sudo systemctl restart aegis-vault.service
+  fi
 
   case "$TARGET" in
     aegis)  start_app_oci aegis-vault.service ;;

@@ -23,6 +23,7 @@ interface SeedResponse {
     luxuryItems: number;
   };
   rolledBack?: boolean;
+  mutationAttempted?: boolean;
 }
 
 interface InitializeDemoSeedModalProps {
@@ -64,6 +65,7 @@ export function InitializeDemoSeedModal({
     try {
       const response = await fetch("/api/demo-control/execute", {
         method: "POST",
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           scope: "luminaforge",
@@ -72,13 +74,15 @@ export function InitializeDemoSeedModal({
         }),
       });
       const data = (await response.json()) as SeedResponse;
+      const mutationAttempted = data.mutationAttempted === true;
       setResult(
         response.ok
-          ? data
+          ? { ...data, mutationAttempted }
           : {
               ...data,
               ok: false,
               error: data.error ?? "Demo seed initialization failed",
+              mutationAttempted,
             },
       );
     } catch {
@@ -121,10 +125,11 @@ export function InitializeDemoSeedModal({
             {!result.ok && (
               <p className="text-sm text-slate-300">
                 {result.error ?? result.output}
-                {" "}
-                {result.rolledBack
-                  ? "No partial reset was committed."
-                  : "Rollback could not be confirmed."}
+                {result.mutationAttempted
+                  ? result.rolledBack
+                    ? " No partial reset was committed."
+                    : " Rollback could not be confirmed."
+                  : null}
               </p>
             )}
           </div>

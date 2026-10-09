@@ -50,9 +50,11 @@ test("authorized presenter confirms one reset without navigating", async ({
     name: "Initialize Demo Seed Data",
   });
   await expect(seedButton).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Break-Glass Control" }),
-  ).toBeVisible();
+  const breakGlass = page.getByRole("button", { name: "Break-Glass Control" });
+  await expect(breakGlass).toBeVisible();
+  await expect(breakGlass).toHaveClass(/bg-\[#991b1b\]\/20/);
+  await expect(seedButton).toHaveClass(/bg-\[#7f1d1d\]\/8/);
+  await expect(page.locator("main > div").first()).toHaveClass(/aspect-\[12\/9\]/);
 
   await seedButton.click();
   await page.getByLabel("Break-Glass User").fill("ops-lead");
@@ -85,4 +87,45 @@ test("authorized presenter confirms one reset without navigating", async ({
     },
   });
   expect(denied.status()).toBe(401);
+  const deniedBody = (await denied.json()) as {
+    error?: string;
+    mutationAttempted?: boolean;
+  };
+  expect(deniedBody.error).toBe("Break-glass authorization is required");
+  expect(deniedBody.mutationAttempted).toBe(false);
+  expect(JSON.stringify(deniedBody)).not.toMatch(/Rollback could not be confirmed/i);
+});
+
+test("seed confirmation stays closed when login does not issue a grant", async ({
+  page,
+}) => {
+  await page.route("**/api/build", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ build: 78 }),
+    }),
+  );
+  await page.route("**/api/break-glass/login", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        seedGrantIssued: false,
+        violation: { id: "test-break-glass" },
+      }),
+    }),
+  );
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Initialize Demo Seed Data" }).click();
+  await page.getByLabel("Break-Glass User").fill("ops-lead");
+  await page.getByLabel("Password").fill("demo");
+  await page.getByRole("button", { name: "Break-Glass Login" }).click();
+  await expect(
+    page.getByText("Demo seed initialization is not enabled on this host"),
+  ).toBeVisible();
+  await expect(
+    page.getByLabel("Type RESET LUMINAFORGE DEMO DATA to continue"),
+  ).toHaveCount(0);
 });
