@@ -1,91 +1,66 @@
 ## Context
 
-The compute stack today uses Oracle Linux 9 (OL9) as the image OS. All package operations use `dnf`/RPM, Oracle Instant Client is installed via the `oracle-instantclient-release-el9` yum repo, and the firewall is managed by `firewalld`. The Terraform image data source hard-codes `Oracle Linux` / `9` as the OS filter.
+The compute stack previously used Oracle Linux 9 (OL9). Package operations used `dnf`/RPM, Instant Client came from the `oracle-instantclient-release-el9` yum repo, and the firewall was `firewalld`.
 
-Ubuntu 24.04 LTS ("Noble Numbat") uses `apt`/dpkg, does **not** ship the `libaio1` package that Oracle Instant Client requires (it was replaced by `libaio1t64`), and uses `ufw` for firewall management. These differences require targeted substitutions throughout `cloud-init.yaml.tftpl` and supporting scripts — no application code changes are needed.
+Ubuntu 24.04 LTS uses `apt`/dpkg and `ufw`. Separately, the stack moved to **node-oracledb Thin Mode**, so Instant Client (ZIP or RPM) and `libaio` workarounds are **not** required. Canonical design for that pairing: archived change `ubuntu-24-thin-client`.
 
 ## Goals / Non-Goals
 
 **Goals:**
 - Compute VM boots Ubuntu 24.04 LTS on OCI.
-- Oracle Instant Client 19.31 installs cleanly via ZIP + `libaio1t64` symlink.
-- Ports 3000, 3001, 80 open via `ufw` instead of `firewalld`.
+- Ports 3000, 3001, and 80 (when WAF enabled) open via `ufw`.
 - Node.js 22 installs via NodeSource `setup_22.x` + `apt`.
-- nginx WAF redirect installs via `apt-get` instead of `dnf`.
-- All deployment docs (`terraform/README.md`, `terraform/OCI-CONSOLE-QUICKSTART.md`) updated to reference Ubuntu 24.04 terminology.
+- nginx WAF redirect installs via `apt-get`.
+- Deployment docs reference Ubuntu 24.04 + Thin Mode.
 
 **Non-Goals:**
 - Changing Oracle DB, PDB, or SQL Firewall configuration.
-- Modifying application source code (`aegis-vault/`, `luminaforge/`).
+- Modifying application source beyond Thin Mode (already done).
 - Supporting both OL9 and Ubuntu 24.04 simultaneously.
-- Upgrading Oracle Instant Client beyond 19.31 (node-oracledb thick mode is version-agnostic at 19+).
+- Installing Oracle Instant Client on compute (Thin Mode).
 
 ## Decisions
 
-### 1. Oracle Instant Client installation: ZIP vs. apt repo
+### 1. Instant Client: not installed (Thin Mode)
 
-OCI ships no Oracle Instant Client apt repo. Options:
-- **ZIP download** from `download.oracle.com` (no auth needed for basic package) into `/opt/oracle/instantclient_19_31` → `ldconfig` → symlink `libaio.so.1`. **Chosen.**
-- Alien RPM → deb conversion: fragile, not idempotent.
-- Custom PPA: maintenance burden, not needed for a pinned 19.31 version.
+Original plan used ZIP + `libaio1t64` symlink for thick mode. **Superseded:** apps and bootstrap use Thin Mode only — no Instant Client path, `ORACLE_CLIENT_LIBDIR`, or `LD_LIBRARY_PATH`.
 
-The ZIP approach mirrors what Oracle's own documentation recommends for non-OL Linux and has been validated on Ubuntu 24.04 by the community.
-
-### 2. libaio workaround
-
-Ubuntu 24.04 ships `libaio1t64` providing `libaio.so.1t64`, but Oracle Instant Client requires `libaio.so.1`. The symlink:
-
-```bash
-ln -sf /usr/lib/x86_64-linux-gnu/libaio.so.1t64 /usr/lib/x86_64-linux-gnu/libaio.so.1
-```
-
-is the accepted workaround per Oracle Forums and AskUbuntu. **Chosen** — no recompile required.
-
-### 3. Firewall: ufw instead of firewalld
-
-Ubuntu 24.04 ships `ufw` (active by default on OCI Ubuntu images). `firewalld` is not installed. Replacing all `firewalld` / `firewall-cmd` calls with `ufw allow` is the standard Ubuntu path.
+### 2. Firewall: ufw instead of firewalld
 
 ```bash
 ufw allow 3000/tcp
 ufw allow 3001/tcp
+ufw --force enable
+# when WAF_LB_URL set:
 ufw allow 80/tcp
 ```
 
-`ufw` may already be enabled; `ufw allow` is idempotent.
+OCI Ubuntu images may ship a legacy iptables REJECT before ufw; cloud-init removes that rule so app ports are reachable.
 
-### 4. Image filter path in Terraform
+### 3. Image filter
 
-`oci_core_images` data source filter changes:
 - `operating_system` → `"Canonical Ubuntu"`
 - `operating_system_version` → `"24.04"`
 
-OCI provides the official Canonical Ubuntu marketplace image. Sort by `TIMECREATED DESC` already in place — picks the latest patch automatically.
+### 4. Package management: apt only
 
-### 5. Instant Client path change
-
-OL9 RPM installs to `/usr/lib/oracle/19.31/client64/lib`. ZIP installs to `/opt/oracle/instantclient_19_31`.
-
-All references to `ORACLE_CLIENT_LIBDIR` and `LD_LIBRARY_PATH` (cloud-init env, systemd unit files, bootstrap.env) update to `/opt/oracle/instantclient_19_31`.
+`dnf` / RPM repos removed. Pre-reqs via cloud-config `packages:` + NodeSource deb path.
 
 ## Risks / Trade-offs
 
-- **[Risk] OCI Ubuntu image name differs by region** → Use `operating_system = "Canonical Ubuntu"` and `operating_system_version = "24.04"` — OCI normalises these across regions for Canonical images.
-- **[Risk] download.oracle.com ZIP URL changes** → Pin to `instantclient-basic-linux.x64-19.31.0.0.0dbru.zip` (stable URL since 2023); if 404, update URL in cloud-init and cloud-init version in docs.
-- **[Risk] libaio.so.1 symlink breaks future Ubuntu upgrades** → Acceptable for a demo VM; note in docs that re-running the install script is idempotent.
-- **[Risk] ufw is inactive on some OCI Ubuntu images** → Script uses `ufw allow` then `ufw --force enable` to ensure it's active without blocking existing SSH.
-- **[Risk] NodeSource `setup_22.x` script works differently on Ubuntu vs. OL9** → Tested: the same `curl | bash` + `apt install nodejs` path is the official Ubuntu method.
+- **[Risk] ufw inactive / OCI iptables REJECT** → `ufw --force enable` plus removal of legacy REJECT in `rules.v4` (already in cloud-init).
+- **[Risk] Thin Mode vs NNE on Base DB** → `scripts/configure-db-sqlnet-for-thin-mode.sh` + docs (NJS-533 / ORA-12660).
 
 ## Migration Plan
 
-1. Update `terraform/compute/main.tf` image filter.
-2. Rewrite `terraform/compute/cloud-init.yaml.tftpl` install block (apt, ZIP, ufw, nginx).
-3. Update `scripts/setup-waf-port80-redirect.sh` (dnf → apt, firewalld → ufw).
-4. Update `terraform/README.md` and `terraform/OCI-CONSOLE-QUICKSTART.md` OS/firewall references.
-5. Re-package `sqlfw-compute-stack.zip` via `./package-stacks.sh`.
-6. Test: deploy fresh compute stack → confirm `[SUCCESS] Apps + DB schema ready`.
+1. Image filter → Canonical Ubuntu 24.04 — **done on main**.
+2. cloud-init apt / ufw / no Instant Client — **done on main**.
+3. `setup-waf-port80-redirect.sh` — **done on main**.
+4. Docs — **done on main** (minor SSH-user table fix in this apply).
+5. Mark this change’s tasks complete; archive via `/opsx:archive`.
 
-**Rollback:** Change `operating_system` back to `Oracle Linux` / `9` and revert cloud-init — both are in version control.
+**Rollback:** Revert to Oracle Linux / thick mode only via git history (not supported as a dual path).
 
 ## Open Questions
 
-- None — ZIP path and libaio symlink are confirmed approaches on Ubuntu 24.04.
+- None — Ubuntu + Thin Mode is live on `main`.

@@ -276,7 +276,7 @@ Paste into **both** files:
 
 | After deploy | SSH user | Command |
 |--------------|----------|---------|
-| **Compute VM** | `opc` | `ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@<compute_public_ip>` |
+| **Compute VM** | `ubuntu` | `ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@<compute_public_ip>` |
 | **DBCS host** | `opc` | `ssh -i ~/.ssh/id_ed25519_sqlfw opc@<db_private_ip>` (VCN/VPN/bastion only) |
 
 ### 1.4 Oracle DB home version (26ai)

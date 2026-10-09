@@ -7,23 +7,23 @@ The OCI compute Terraform stack SHALL provision compute instances from the offic
 - **WHEN** the compute stack is applied with default variables
 - **THEN** the provisioned VM runs Ubuntu 24.04 LTS (confirmed via `lsb_release -a`)
 
-### Requirement: Oracle Instant Client installed via ZIP on Ubuntu
-The cloud-init bootstrap SHALL install Oracle Instant Client 19.31 by downloading the official ZIP from `download.oracle.com` into `/opt/oracle/instantclient_19_31`, configuring `ldconfig`, and creating a symlink `libaio.so.1 → libaio1t64` required on Ubuntu 24.04. `ORACLE_CLIENT_LIBDIR` and `LD_LIBRARY_PATH` SHALL be set to `/opt/oracle/instantclient_19_31` in `/root/sqlfw-bootstrap.env` and all systemd unit `Environment=` directives.
+### Requirement: No Oracle Instant Client on compute (Thin Mode)
+The cloud-init bootstrap SHALL NOT install Oracle Instant Client (ZIP or RPM). `ORACLE_CLIENT_LIBDIR` and `LD_LIBRARY_PATH` SHALL NOT appear in `/root/sqlfw-bootstrap.env` or systemd unit `Environment=` directives. Apps and bootstrap SHALL use `node-oracledb` Thin Mode.
 
-#### Scenario: node-oracledb thick mode connects after bootstrap
+#### Scenario: Apps connect without Instant Client
 - **WHEN** cloud-init completes successfully on Ubuntu 24.04
-- **THEN** `aegis-vault` and `luminaforge` connect to the Oracle PDB without NJS-533 or DPI-1047 errors
-
-#### Scenario: libaio symlink present
-- **WHEN** bootstrap runs on Ubuntu 24.04
-- **THEN** `/usr/lib/x86_64-linux-gnu/libaio.so.1` exists as a symlink to `libaio.so.1t64`
+- **THEN** `aegis-vault` and `luminaforge` connect to the Oracle PDB without Instant Client libraries installed
 
 ### Requirement: Firewall managed by ufw on Ubuntu
-The cloud-init bootstrap SHALL use `ufw` to open TCP ports 3000, 3001, and 80. The bootstrap SHALL NOT use `firewalld` or `firewall-cmd` on Ubuntu. `ufw` SHALL be enabled if not already active.
+The cloud-init bootstrap SHALL use `ufw` to open TCP ports 3000 and 3001, and port 80 when WAF redirect is configured. The bootstrap SHALL NOT use `firewalld` or `firewall-cmd`. `ufw` SHALL be enabled if not already active.
 
 #### Scenario: App ports open after bootstrap
 - **WHEN** cloud-init completes successfully
-- **THEN** `ufw status` shows 3000/tcp, 3001/tcp, and 80/tcp as ALLOW
+- **THEN** `ufw status` shows 3000/tcp and 3001/tcp as ALLOW
+
+#### Scenario: Port 80 when WAF enabled
+- **WHEN** `WAF_LB_URL` is set and cloud-init completes
+- **THEN** `ufw status` shows 80/tcp as ALLOW
 
 #### Scenario: SSH not blocked by ufw enable
 - **WHEN** cloud-init runs `ufw --force enable`
@@ -41,7 +41,7 @@ All cloud-init package installation steps SHALL use `apt-get` or `apt`. `dnf`, `
 - **THEN** `systemctl is-active nginx` returns `active`
 
 ### Requirement: Deployment documentation references Ubuntu 24.04
-`terraform/README.md` and `terraform/OCI-CONSOLE-QUICKSTART.md` SHALL reference Ubuntu 24.04 as the compute OS. All references to Oracle Linux, `dnf`, `firewalld`, `rpm`, `el9`, and OL9-specific steps SHALL be replaced with Ubuntu 24.04 equivalents (`apt`, `ufw`, etc.).
+`terraform/README.md` and `terraform/OCI-CONSOLE-QUICKSTART.md` SHALL reference Ubuntu 24.04 as the compute OS and Thin Mode for DB connectivity. References to Oracle Linux, `dnf`, `firewalld`, and OL9 Instant Client RPM steps SHALL be replaced with Ubuntu 24.04 equivalents (`apt`, `ufw`, Thin Mode).
 
 #### Scenario: Firewall troubleshooting steps show ufw commands
 - **WHEN** a presenter follows the firewall troubleshooting section in the docs
