@@ -73,6 +73,9 @@ test("setup and transaction reset consume generated canonical values", () => {
     `${transactionReset}\n${fs.readFileSync("sql/luminaforge_demo_seed.sql", "utf8")}`,
     /\bDB_PASSWORD\b|\bDB_CONNECTION_STRING\b|BEGIN PRIVATE KEY/i,
   );
+  const marketReseed = fs.readFileSync("scripts/reseed_market_vm.js", "utf8");
+  assert.match(marketReseed, /seed\/luminaforge-demo-seed\.json/);
+  assert.doesNotMatch(marketReseed, /Oracle Corp \(ORCL\)|Bitcoin \(BTC\)/);
 });
 
 test("identity migration reserves stable explicit seed IDs", () => {
