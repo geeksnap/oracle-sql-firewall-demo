@@ -4,16 +4,20 @@ Deploy the SQL Firewall demo from **OCI Console → Developer Services → Resou
 
 ## Release assets (preferred)
 
-From the GitHub repository **Releases** page:
+Published stack zips for tag **[`orm-stacks-20261009`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261009)**:
 
-| Asset | Upload order | Contents |
-|-------|--------------|----------|
-| [`sqlfw-db-stack.zip`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/latest) | **1st** | `terraform/db` — VCN + Base DB 26ai + `schema.yaml` |
-| [`sqlfw-compute-stack.zip`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/latest) | **2nd** | `terraform/compute` — apps VM (+ WAF/LB) + `schema.yaml` |
+| Asset | Upload order | Direct download |
+|-------|--------------|-----------------|
+| `sqlfw-db-stack.zip` | **1st** | https://github.com/geeksnap/oracle-sql-firewall-demo/releases/download/orm-stacks-20261009/sqlfw-db-stack.zip |
+| `sqlfw-compute-stack.zip` | **2nd** | https://github.com/geeksnap/oracle-sql-firewall-demo/releases/download/orm-stacks-20261009/sqlfw-compute-stack.zip |
 
-1. Open [Releases](https://github.com/geeksnap/oracle-sql-firewall-demo/releases) → choose a release that lists both assets (or **Latest**).
-2. Download both zips.
-3. Follow **[OCI-CONSOLE-QUICKSTART.md](OCI-CONSOLE-QUICKSTART.md)** starting at **Step 2** (DB stack).
+| Asset | Contents |
+|-------|----------|
+| DB zip | `terraform/db` — VCN + Base DB 26ai + `schema.yaml` at zip root |
+| Compute zip | `terraform/compute` — apps VM (+ WAF/LB) + `schema.yaml` at zip root |
+
+1. Download both zips from the release above (or open [Releases](https://github.com/geeksnap/oracle-sql-firewall-demo/releases) / [Latest](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/latest) when it lists the same assets).
+2. Follow **[OCI-CONSOLE-QUICKSTART.md](OCI-CONSOLE-QUICKSTART.md)** starting at **Step 2** (DB stack).
 
 If no release assets exist yet, use the alternate build below, or run **Actions → Package OCI Resource Manager stacks → Run workflow**, then download the `sqlfw-orm-stacks` artifact.
 

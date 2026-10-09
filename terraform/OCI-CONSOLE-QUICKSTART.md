@@ -11,7 +11,21 @@ Browser → Compute VM (:3000 Aegis, :3001 LuminaForge) → Base DB 26ai (PDB)
          └── private VCN (created by DB stack — do not pre-create)
 ```
 
-Full reference: [`README.md`](../README.md) · Start/stop apps + DB: [`README.md`](../README.md#startstop) · Local CLI: [`README.md#phase-0--oci-api-access-one-time`](README.md)
+Full reference: [`README.md`](../README.md) · Start/stop apps + DB: [`README.md`](../README.md#startstop) · Local CLI: [`README.md#phase-0--oci-api-access-one-time`](README.md) · Zip downloads: [`DOWNLOAD.md`](DOWNLOAD.md)
+
+### Console path at a glance
+
+| Order | What | Where |
+|------:|------|--------|
+| 0 | Prep: region, compartment OCID, SSH **public** key, `db_home_version` (26.x), your `/32` | Console + laptop (no Terraform CLI) |
+| 1 | Download **`sqlfw-db-stack.zip`** then **`sqlfw-compute-stack.zip`** | [Release `orm-stacks-20261009`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261009) |
+| 2 | **Create stack** → upload DB zip → fill schema Variables → **Plan → Apply** (~60–90 min) | Resource Manager |
+| 2b | Confirm public GitHub URL (default) or PAT for private | Before compute Apply |
+| 2c | Configure DB sqlnet for Thin Mode (Bastion **or** after compute via ProxyJump) | DB host as `opc` |
+| 3 | Copy DB **stack OCID** → Create compute stack → set **`db_stack_id`** → Plan → Apply | Resource Manager |
+| 4 | Wait for cloud-init `[SUCCESS]` → open Outputs URLs → **Initialize default demo policy** | Browser + optional SSH |
+
+**Do not** pre-create a VCN with the VCN Wizard. **Do not** reverse DB/compute order. Secrets go only in Resource Manager **Variables** (never in the zip).
 
 ---
 
@@ -94,28 +108,42 @@ Set `enable_waf = false` in compute stack Variables to skip LB/WAF (direct `:300
 
 | Need | Action |
 |------|--------|
-| **Console region** | Select target region (top-right) — must match `region` variable in both stacks |
-| OCI compartment OCID | **Identity → Compartments** → Copy OCID (used as `compartment_id` variable) |
-| SSH key | `ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_sqlfw -N ""` → `cat ~/.ssh/id_ed25519_sqlfw.pub` |
-| 26ai DB version | Latest **`26.x.x.x.x`** (e.g. `26.0.0.0.0`) — run CLI in [Check 26ai DB home version](#check-26ai-db-home-version-before-db-stack) below |
+| **Console region** | Select target region (top-right) — must match `region` in **both** stacks (same value) |
+| OCI compartment OCID | **Identity → Compartments** → Copy OCID (`compartment_id`; schema also offers a compartment picker) |
+| SSH public key | On your laptop: `ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_sqlfw -N ""` → paste `id_ed25519_sqlfw.pub` into Variables (not OCI CLI) |
+| 26ai DB version | Latest **`26.x.x.x.x`** in your region — [Console check](#check-26ai-db-home-version-before-db-stack) preferred; CLI optional |
 | Your public IP | `allow_ssh_cidr = "x.x.x.x/32"` on **DB stack** — must **Apply** after change (opens SSH + **3000/3001**) |
-| **GitHub repo** | **Push latest `main`** — compute VM clones GitHub (zip has no app code). **Public repo** = no PAT |
+| **GitHub repo** | Public default URL needs no PAT. Forks/private: set `github_repo_url` (see Step 2b). Zip has **no** app code — VM clones GitHub |
 | IAM — resources | `manage database-family`, `instance-family`, `virtual-network-family`, `load-balancers`, `waf-family` in target compartment |
 | IAM — Resource Manager | `manage orm-stacks`, `manage orm-jobs` (or `manage stacks` / `manage jobs`) in compartment where stacks live |
+| IAM — Bastion (optional) | Needed only for [Step 2c Option A](#option-a--oci-bastion-before-compute-exists) before the compute VM exists |
 | **VCN / networking** | **Nothing to create manually** — DB stack provisions VCN + subnets (see [Networking](#networking--vcn-is-included-do-not-use-vcn-wizard)) |
 
 ---
 
 ## Check 26ai DB home version (before DB stack)
 
-26ai versions appear as **`26.x.x.x.x`** (e.g. `26.0.0.0.0`). Use the latest `26.x` string available in your region.
+26ai versions appear as **`26.x.x.x.x`** (e.g. `26.0.0.0.0`). Use the latest `26.x` string available in **your** Console region.
+
+### Console (preferred — no OCI CLI)
+
+1. Open **Oracle Base Database** → **Create DB system** (or Create database).
+2. Note the latest **26.x** **Database version** / DB home version offered in the wizard.
+3. Cancel the create wizard if you only needed the version string.
+4. Enter that exact string as **`db_home_version`** in the DB stack Variables (schema default is `26.0.0.0.0`).
+
+If the wizard has no **26.x** option, pick another region or wait until Base Database 26ai is available there.
+
+### Optional — OCI CLI
+
+Only if you already use the OCI CLI locally:
 
 ```bash
-export COMPARTMENT_ID="ocid1.compartment.oc1..aaaaaaaaEXAMPLE_REPLACE_WITH_YOUR_COMPARTMENT_OCID"   # same as compartment_id variable
-export OCI_REGION="ap-tokyo-1"                                   # same as region variable
-export SUPPRESS_LABEL_WARNING=True                               # optional
+export COMPARTMENT_ID="ocid1.compartment.oc1..aaaaaaaaEXAMPLE_REPLACE_WITH_YOUR_COMPARTMENT_OCID"
+export OCI_REGION="ap-singapore-1"   # MUST match Console region + both stack region variables
+export SUPPRESS_LABEL_WARNING=True   # optional
 
-# 1) List ALL versions — confirms CLI works and shows regional catalog
+# 1) List ALL versions
 oci db version list \
   --compartment-id "$COMPARTMENT_ID" \
   --region "$OCI_REGION" \
@@ -123,55 +151,42 @@ oci db version list \
   --query "data[*].version" \
   --output table
 
-# 2) Filter 26ai (26.x) — recommended: jq (reliable when JMESPath filter is empty)
+# 2) Filter 26ai (26.x)
 oci db version list \
   --compartment-id "$COMPARTMENT_ID" \
   --region "$OCI_REGION" \
   --all \
   --output json \
 | jq -r '.data[].version | select(test("^26\\."))' | sort -V
-
-# 2b) JMESPath alternative — note backticks around 26., not single quotes
-oci db version list \
-  --compartment-id "$COMPARTMENT_ID" \
-  --region "$OCI_REGION" \
-  --all \
-  --query "data[?contains(version, \`26.\`)].version" \
-  --output table
 ```
 
-Use the **highest** `26.x` string from step 2 for **`db_home_version`**.
-
-**If step 2 is empty:** verify `echo $COMPARTMENT_ID` is set, `OCI_REGION` matches your Console region, and **Base Database → Create** shows a **26.x** version. If the unfiltered list (step 1) stops at `21.0.0.0`, 26ai is not yet offered for Base Database in that region.
-
-**Console alternative:** **Base Database → Create** → pick the latest **26.x** database version.
+Use the **highest** `26.x` string for **`db_home_version`**. Empty filter with a catalog that stops at `21.0.0.0` means 26ai is not offered for Base Database in that region.
 
 ---
 
 ## Step 1 — Get stack zip files (download preferred)
 
-**Preferred — download from GitHub Releases** (no local Terraform / packaging):
+**Preferred — download published Release assets** (no local Terraform / packaging):
 
-1. Open **[Releases](https://github.com/geeksnap/oracle-sql-firewall-demo/releases)** → pick a release that lists both assets (or see [DOWNLOAD.md](DOWNLOAD.md)).
-2. Download:
+1. Open release **[`orm-stacks-20261009`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261009)** (or [Latest](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/latest) when it points at ORM stack assets).
+2. Download both zips (also listed in [DOWNLOAD.md](DOWNLOAD.md)):
 
-| Zip | Order |
-|-----|-------|
-| `sqlfw-db-stack.zip` | Upload **first** |
-| `sqlfw-compute-stack.zip` | Upload **second** |
+| Zip | Order | Direct URL |
+|-----|-------|------------|
+| [`sqlfw-db-stack.zip`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/download/orm-stacks-20261009/sqlfw-db-stack.zip) | Upload **first** | DB + VCN |
+| [`sqlfw-compute-stack.zip`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/download/orm-stacks-20261009/sqlfw-compute-stack.zip) | Upload **second** | Compute + WAF/LB |
 
-Each zip has `.tf` files + `schema.yaml` at the **root** (no `.terraform/`, no real `terraform.tfvars`). Schema drives the Console Variables wizard.
+Each zip has `.tf` files + `schema.yaml` at the **root** (no `.terraform/`, no real `terraform.tfvars`, no secrets). Schema drives the Console **Configure variables** wizard (grouped Required / Passwords / Optional).
 
-**Alternate — build from a clone** (if no Release assets yet):
+**Alternate — build from a clone** (maintainers or if Release assets are missing):
 
 ```bash
 cd terraform
 chmod +x package-stacks.sh   # first time only
 ./package-stacks.sh
-# or: bash package-stacks.sh
 ```
 
-Produces gitignored zips in `terraform/` (`sqlfw-*-stack.zip`). Maintainers can also run **Actions → Package OCI Resource Manager stacks**.
+Produces gitignored zips in `terraform/` (`sqlfw-*-stack.zip`). CI: **Actions → Package OCI Resource Manager stacks**.
 
 ---
 
@@ -186,35 +201,38 @@ Produces gitignored zips in `terraform/` (`sqlfw-*-stack.zip`). Maintainers can 
 | Terraform version | **1.5+** (match `required_version` in zip) |
 | Stack name | e.g. `sqlfw-db` |
 
-**Variables** (Configure variables panel — names must match exactly):
+**Variables** — schema groups **Required**, **Passwords (sensitive)**, **Optional**. Names must match `schema.yaml` / `variables.tf` exactly:
 
 ```hcl
-region          = "ap-singapore-1"              # MUST match Console region (use same value in DB + compute stacks)
+# Required (same region string in DB + compute stacks and Console top-right)
+region          = "ap-singapore-1"              # example — use YOUR Console region
 compartment_id  = "ocid1.compartment.oc1..aaaaaaaaEXAMPLE_REPLACE_WITH_YOUR_COMPARTMENT_OCID"
 ssh_public_key  = "ssh-ed25519 AAAA... sqlfw"   # full single-line .pub
-db_home_version = "26.0.0.0.0"                  # 26.x — use latest from "oci db version list" (see Check 26ai DB home version)
-allow_ssh_cidr  = "YOUR.PUBLIC.IP/32"   # or "0.0.0.0/0" for open demos — Apply required after change
+db_home_version = "26.0.0.0.0"                  # latest 26.x from Console Base Database create wizard
+allow_ssh_cidr  = "YOUR.PUBLIC.IP/32"           # or "0.0.0.0/0" for open demos — Apply after change
+
+# Optional (schema defaults are fine for most demos)
 pdb_name        = "SQLFWPDB1"
 project_prefix  = "sqlfw-demo"
-# Set your own passwords in the Variables UI (schema marks them sensitive):
-# sys_password    = "CHANGE_ME_SysAdm12_Xy"   (no 'sys' or 'Oracle' in password)
+# vcn_cidr / compute_subnet_cidr / db_subnet_cidr — only if 10.40.0.0/16 overlaps
+
+# Passwords (sensitive) — set in Variables UI; leave blank only for demo-only Terraform defaults
+# sys_password    = "CHANGE_ME_Adm12_Xy"   (no substring 'sys' or 'Oracle')
 # app_db_password = "CHANGE_ME_AppDb34_Gh"
 ```
 
-**Passwords:** Enter in Resource Manager **Variables** (or leave blank to use demo-only Terraform defaults in `variables.tf` for local workshops). **Do not** bake real passwords into the zip. Do **not** set `sys_password` to `pdb_name`.
+**Passwords:** Enter only in Resource Manager **Variables**. **Do not** bake real passwords into the zip. Do **not** set `sys_password` to `pdb_name`.
 
 | Variable | Guidance |
 |----------|----------|
-| `sys_password` | Your OCI-compliant SYS password (`CHANGE_ME_...`) |
-| `app_db_password` | Your app DB password (`CHANGE_ME_...`) |
-
-OCI rejects passwords containing **`Oracle`** or **`sys`** (SYS admin password).
+| `sys_password` | OCI-compliant SYS password; must **not** contain **`Oracle`** or **`sys`** |
+| `app_db_password` | App DB password; must **not** contain **`Oracle`** |
 
 **Run jobs:** **Plan** → review → **Apply**. The plan should show a **new VCN**, two subnets, security lists, and a Base DB system. The Apply job blocks until Base DB provisioning finishes (~**60–90 min**). Wait for job status **Succeeded**.
 
 **Optional cross-check:** **Oracle Base Database** → DB system lifecycle **AVAILABLE**.
 
-**Stack → Outputs** (save for troubleshooting):
+**Stack → Outputs** (save for troubleshooting; schema also surfaces these):
 
 | Output | Notes |
 |--------|--------|
@@ -222,67 +240,30 @@ OCI rejects passwords containing **`Oracle`** or **`sys`** (SYS admin password).
 | `pdb_name` | e.g. `SQLFWPDB1` |
 | `sys_password` | Sensitive — show in Console |
 | `app_db_password` | Sensitive — show in Console |
+| `vcn_id` / `compute_subnet_id` | Handy for Bastion (Step 2c) |
 
-**Copy Stack OCID** (Stack details → Stack information) — required for Step 3.
-
----
-
-## Step 2c — Configure DB for thin-mode clients (required)
-
-OCI Base Database may negotiate **Native Network Encryption (NNE)** on TCP port 1521. `node-oracledb` **Thin Mode** does not support NNE — connections fail with **NJS-533 / ORA-12660** unless the DB server accepts unencrypted TCP.
-
-Run this **once** on the DB VM **before** Step 3 Apply (or before re-running the compute install script).
-
-The DB host has **no public IP**. Reach it via **OCI Bastion** (after Step 2) or via **ProxyJump through the compute VM** (after Step 3).
-
-### Option A — OCI Bastion (before compute exists)
-
-1. **Identity → Bastion** → create a bastion in the demo compartment / VCN
-2. Create a **port-forwarding session** to the DB private IP, port **22**
-3. SSH as `opc` and run:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/geeksnap/oracle-sql-firewall-demo/main/scripts/configure-db-sqlnet-for-thin-mode.sh | sudo bash
-```
-
-### Option B — ProxyJump through compute (after Step 3)
-
-From your laptop (same SSH key as DB + compute):
-
-```bash
-export COMPUTE_IP="<compute_public_ip from Step 3 outputs>"
-
-ssh -A -i ~/.ssh/id_ed25519_sqlfw ubuntu@"$COMPUTE_IP" \
-  'ssh -o StrictHostKeyChecking=no opc@sqlfwdb.dbsnet.sqlfwvcn.oraclevcn.com \
-    "curl -fsSL https://raw.githubusercontent.com/geeksnap/oracle-sql-firewall-demo/main/scripts/configure-db-sqlnet-for-thin-mode.sh | sudo bash"'
-```
-
-Or copy the script from the repo and run it manually on the DB host as `opc`.
-
-Expected output: `[SUCCESS] sqlnet.ora updated — thin-mode clients can connect on TCP :1521`
+**Copy Stack OCID** (Stack details → Stack information) — required for Step 3 as `db_stack_id`.
 
 ---
 
 ## Step 2b — GitHub repo URL (public or private)
 
-Cloud-init runs `git clone` as user `odb_sec` on the compute VM.
+Do this **before** compute Apply. Cloud-init runs `git clone` as user `odb_sec` on the compute VM.
 
 ### Public repo (no token — simplest)
 
-1. On GitHub: **Repository → Settings → General → Danger Zone → Change repository visibility → Public**
-2. Push your latest code to `main`
-3. In compute stack variables:
+The published stacks default to the public upstream URL. For the canonical demo:
 
 ```hcl
 github_repo_url = "https://github.com/geeksnap/oracle-sql-firewall-demo.git"
 github_branch   = "main"
 ```
 
-No PAT required. Skip the rest of this section.
+No PAT required. Skip the rest of this section unless you deploy from a **private** fork.
 
 ### Private repo (PAT required)
 
-A **private** repo needs a **Personal Access Token (PAT)** embedded in `github_repo_url`.
+A **private** repo needs a **Personal Access Token (PAT)** embedded in `github_repo_url`. Enter it only in Resource Manager Variables — never commit it.
 
 ### Create a fine-grained token (recommended)
 
@@ -291,8 +272,8 @@ A **private** repo needs a **Personal Access Token (PAT)** embedded in `github_r
 3. **Generate new token**
 4. **Token name:** e.g. `oci-sqlfw-demo-read`
 5. **Expiration:** 90 days (or your policy)
-6. **Resource owner:** your account (`geeksnap`)
-7. **Repository access:** **Only select repositories** → choose **`oracle-sql-firewall-demo`**
+6. **Resource owner:** your account / org
+7. **Repository access:** **Only select repositories** → choose your fork / private repo
 8. **Permissions → Repository permissions:**
    - **Contents:** **Read-only**
    - (Leave everything else **No access**)
@@ -303,13 +284,13 @@ A **private** repo needs a **Personal Access Token (PAT)** embedded in `github_r
 Replace `<TOKEN>` with the copied value (no spaces):
 
 ```hcl
-github_repo_url = "https://github_pat_XXXXXXXXXXXXXXXXXXXX@github.com/geeksnap/oracle-sql-firewall-demo.git"
+github_repo_url = "https://github_pat_XXXXXXXXXXXXXXXXXXXX@github.com/YOUR_ORG/oracle-sql-firewall-demo.git"
 ```
 
 **Alternative format** (also works):
 
 ```hcl
-github_repo_url = "https://geeksnap:github_pat_XXXXXXXXXXXXXXXXXXXX@github.com/geeksnap/oracle-sql-firewall-demo.git"
+github_repo_url = "https://YOUR_ORG:github_pat_XXXXXXXXXXXXXXXXXXXX@github.com/YOUR_ORG/oracle-sql-firewall-demo.git"
 ```
 
 Mark **`github_repo_url` as sensitive** in Resource Manager if the UI offers it. **Never commit** the token to git.
@@ -322,7 +303,7 @@ Mark **`github_repo_url` as sensitive** in Resource Manager if the UI offers it.
 4. Generate and copy (starts with `ghp_...`)
 
 ```hcl
-github_repo_url = "https://ghp_XXXXXXXXXXXXXXXXXXXX@github.com/geeksnap/oracle-sql-firewall-demo.git"
+github_repo_url = "https://ghp_XXXXXXXXXXXXXXXXXXXX@github.com/YOUR_ORG/oracle-sql-firewall-demo.git"
 ```
 
 ### After updating the token or making the repo public
@@ -350,24 +331,64 @@ ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@$COMPUTE_IP \
 
 ---
 
+## Step 2c — Configure DB for thin-mode clients (required)
+
+OCI Base Database may negotiate **Native Network Encryption (NNE)** on TCP port 1521. `node-oracledb` **Thin Mode** does not support NNE — connections fail with **NJS-533 / ORA-12660** unless the DB server accepts unencrypted TCP.
+
+Run this **once** on the DB VM. Preferred: **before** compute bootstrap finishes (Option A). If you skip Bastion, Apply compute first, then Option B, then re-run the install script.
+
+The DB host has **no public IP**.
+
+### Option A — OCI Bastion (before compute exists)
+
+1. **Identity & Security → Bastions** → create a bastion in the demo compartment, attached to the DB stack **VCN** / suitable subnet
+2. Create a **managed SSH** or **port-forwarding** session to the DB private IP (or FQDN), port **22**
+3. SSH as `opc` (DB stack SSH key) and run:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/geeksnap/oracle-sql-firewall-demo/main/scripts/configure-db-sqlnet-for-thin-mode.sh | sudo bash
+```
+
+### Option B — ProxyJump through compute (after Step 3 Apply)
+
+From your laptop (same SSH key as DB + compute). If bootstrap already failed with NJS-533 / ORA-12660, run this, then re-run `sqlfw-install-apps.sh` on the compute VM.
+
+```bash
+export COMPUTE_IP="<compute_public_ip from Step 3 outputs>"
+
+ssh -A -i ~/.ssh/id_ed25519_sqlfw ubuntu@"$COMPUTE_IP" \
+  'ssh -o StrictHostKeyChecking=no opc@sqlfwdb.dbsnet.sqlfwvcn.oraclevcn.com \
+    "curl -fsSL https://raw.githubusercontent.com/geeksnap/oracle-sql-firewall-demo/main/scripts/configure-db-sqlnet-for-thin-mode.sh | sudo bash"'
+```
+
+(If you changed `project_prefix` / hostnames, use the DB host FQDN from DB stack output `db_host_fqdn` / `db_private_ip`.)
+
+Or copy the script from the repo and run it manually on the DB host as `opc`.
+
+Expected output: `[SUCCESS] sqlnet.ora updated — thin-mode clients can connect on TCP :1521`
+
+---
+
 ## Step 3 — Compute stack (Resource Manager)
 
-**Prerequisite:** Step 2 Apply job **Succeeded** (DB stack state must exist).
+**Prerequisite:** Step 2 Apply job **Succeeded** (DB stack state must exist). Complete Step 2b (GitHub URL). Prefer Step 2c Option A before waiting on cloud-init.
 
-**Create stack** → `sqlfw-compute-stack.zip` (same wizard choices as Step 2; name e.g. `sqlfw-compute`).
+**Create stack** → upload `sqlfw-compute-stack.zip` (same wizard choices as Step 2; name e.g. `sqlfw-compute`).
 
-**Variables** ( **`db_stack_id` is required** — without it Plan fails looking for local state):
+**Variables** — schema groups **Required (Console)**, **GitHub source**, **WAF / Load Balancer**, **Optional overrides**. **`db_stack_id` is required** (without it Plan fails looking for local state):
 
 ```hcl
-region          = "ap-tokyo-1"                  # MUST match DB stack and Console region
+region          = "ap-singapore-1"              # MUST match DB stack + Console region (same string)
 compartment_id  = "ocid1.compartment.oc1..aaaaaaaaEXAMPLE_REPLACE_WITH_YOUR_COMPARTMENT_OCID"
 ssh_public_key  = "ssh-ed25519 AAAA... sqlfw"   # same key as DB stack
 project_prefix  = "sqlfw-demo"                  # same as DB stack
-db_stack_id     = "ocid1.ormstack.oc1....."    # REQUIRED — DB stack OCID from Step 2
-github_repo_url = "https://github.com/geeksnap/oracle-sql-firewall-demo.git"   # public repo
-# github_repo_url = "https://<TOKEN>@github.com/geeksnap/oracle-sql-firewall-demo.git"  # private only
+db_stack_id     = "ocid1.ormstack.oc1....."     # REQUIRED — DB stack OCID from Step 2
+github_repo_url = "https://github.com/geeksnap/oracle-sql-firewall-demo.git"   # public default
+# github_repo_url = "https://<TOKEN>@github.com/YOUR_ORG/oracle-sql-firewall-demo.git"  # private only
 github_branch   = "main"
 enable_waf      = true    # default — LB + WAF + compute :80 redirect; set false for :3001-only demos
+# load_balancer_bandwidth_mbps = 10   # optional schema default
+# override_* passwords / connection string — leave blank to use DB stack remote state
 ```
 
 **Terraform creates on Apply** (in addition to the compute VM):
@@ -385,9 +406,20 @@ enable_waf      = true    # default — LB + WAF + compute :80 redirect; set fal
 
 > **Apply Succeeded ≠ apps ready.** Terraform provisions infrastructure; **cloud-init** then installs Node, clones GitHub, bootstraps the DB, starts systemd, and configures the WAF redirect (**10–20 min** more).
 
-**Stack → Outputs** — note `compute_public_ip`, `aegis_vault_url`, `luminaforge_url`, **`luminaforge_waf_url`** (presenter WAF entry — use this for Attack Point demos on port 80).
+**Stack → Outputs** — copy these from the Console (schema titles match):
 
-**Wait for bootstrap** (required before Step 4):
+| Output | Use |
+|--------|-----|
+| `compute_public_ip` | SSH / troubleshooting |
+| `aegis_vault_url` | Browser → Aegis Vault `:3000` |
+| `luminaforge_url` | Browser → LuminaForge direct `:3001` |
+| `luminaforge_waf_url` | Presenter WAF entry (`:80`) when `enable_waf = true` |
+
+Your URLs use **your** stack IPs — not any example IPs from an existing public demo.
+
+**Wait for bootstrap** (required before Step 4). **Console-first:** open `aegis_vault_url` / `luminaforge_url` in a browser every few minutes until both load (**200** / redirect). Connection refused usually means cloud-init is still running (~10–20 min).
+
+**Optional SSH** (laptop) to watch the log:
 
 ```bash
 COMPUTE_IP=<from terraform output compute_public_ip>
@@ -404,22 +436,22 @@ ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@$COMPUTE_IP \
 
 Both must print `active`.
 
-**Smoke test** (after bootstrap):
+**Optional curl smoke test** (after bootstrap):
 
 ```bash
 curl -s -o /dev/null -w "Aegis %{http_code}\n"  http://$COMPUTE_IP:3000
 curl -s -o /dev/null -w "Lumina %{http_code}\n" http://$COMPUTE_IP:3001
 ```
 
-Expect **200** or **307**. Connection refused → bootstrap still running.
+Expect **200** or **307**. If install log shows **NJS-533 / ORA-12660**, finish [Step 2c](#step-2c--configure-db-for-thin-mode-clients-required) then re-run `sqlfw-install-apps.sh`.
 
 ---
 
 ## Step 4 — Initialize demo (once per fresh DB)
 
-**Prerequisite:** Step 3 bootstrap complete (`[SUCCESS]` + both services `active`).
+**Prerequisite:** Step 3 bootstrap complete (apps respond in the browser, or `[SUCCESS]` + both services `active`).
 
-1. Open **Aegis Vault** (`aegis_vault_url`) → **Demo Control**
+1. Open **Aegis Vault** (`aegis_vault_url` from compute Outputs) → **Demo Control**
 2. **Initialize default demo policy** (LuminaForge must be running on `:3001`)
 3. Open **LuminaForge** (`luminaforge_url`) — browse tabs to generate traffic
 4. Back in Demo Control: **Stop SQL capture** → **Generate Allow List**
@@ -477,20 +509,14 @@ Expect: `[SUCCESS] Apps + DB schema ready`, both services `active`, HTTP **200**
 
 | App | URL | What you should see |
 |-----|-----|---------------------|
-| **Aegis Vault** | `http://<compute_public_ip>:3000` | SOC dashboard, sidebar (Dashboard, Demo Control, …) |
-| **LuminaForge** (direct bypass) | `http://<compute_public_ip>:3001` | Demo fintech UI, nav tabs |
-| **LuminaForge via WAF** | `http://<lb_public_ip>/` | **Terraform output** `luminaforge_waf_url` → WAF `demo-waf-firewall` → LB `sqlfw-demo-lb` → backend `:3001` |
-| **Compute :80 shortcut** | `http://<compute_public_ip>/` | Intended: redirect to LB when `enable_waf = true`. **Current live stack:** nginx default page (no `Location`) — use the WAF LB URL below |
+| **Aegis Vault** | `aegis_vault_url` → `http://<your_compute_public_ip>:3000` | SOC dashboard, sidebar (Dashboard, Demo Control, …) |
+| **LuminaForge** (direct bypass) | `luminaforge_url` → `http://<your_compute_public_ip>:3001` | Demo fintech UI, nav tabs |
+| **LuminaForge via WAF** | `luminaforge_waf_url` → `http://<your_lb_public_ip>/` | WAF `demo-waf-firewall` → LB → backend `:3001` |
+| **Compute :80 shortcut** | `http://<your_compute_public_ip>/` | When `enable_waf = true`, should redirect to `luminaforge_waf_url`. If you see the nginx default page, use the WAF LB URL instead |
 
-**Current live stack** (update if IPs rotate):
+> **Existing public demo (optional):** The maintainers may run a shared demo whose IPs are listed in the [repo README](../README.md) and [`docs/DEMO-BRIEFING-SCRIPT.md`](../docs/DEMO-BRIEFING-SCRIPT.md). Those IPs are **not** your Resource Manager Outputs and may rotate. For a new tenancy deploy, always use **your** compute stack Outputs.
 
-| App | URL |
-|-----|-----|
-| Aegis Vault | http://161.33.154.45:3000/ |
-| LuminaForge (direct, no WAF) | http://161.33.154.45:3001/ |
-| LuminaForge via OCI WAF | http://151.145.73.122/ |
-
-**LuminaForge routes** — use `http://<lb_public_ip>` (WAF) or `http://<compute_public_ip>:3001` (direct):
+**LuminaForge routes** — use your `luminaforge_waf_url` (WAF) or `luminaforge_url` (direct):
 
 | Tab | Path | Attack point |
 |-----|------|--------------|
