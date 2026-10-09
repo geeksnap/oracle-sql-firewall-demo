@@ -18,9 +18,10 @@ Repeated attack demonstrations mutate LuminaForge business data and leave seeded
 
 ### New Capabilities
 - `demo-seed-initialization`: Guarded, transactional restoration of the complete LuminaForge demo dataset with deterministic temporal rebasing and observable outcomes.
+- `aegis-demo-seed-control`: Aegis sidebar placement, break-glass authorization, typed confirmation, and presenter feedback for invoking demo seed initialization.
 
 ### Modified Capabilities
-- `aegis-break-glass-control`: Extend the Aegis sidebar and break-glass authorization contract with a separately confirmed **Initialize Demo Seed Data** action below the existing control.
+- None.
 
 ## Impact
 

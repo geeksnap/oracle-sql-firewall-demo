@@ -1,5 +1,9 @@
 # Spec Delta
 
+## Purpose
+
+Defines the guarded Aegis Vault presenter control that authorizes, confirms, invokes, and reports destructive demo seed initialization.
+
 ## ADDED Requirements
 
 ### Requirement: Sidebar exposes demo seed initialization below Break-Glass Control
