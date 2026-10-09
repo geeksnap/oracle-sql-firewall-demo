@@ -1,0 +1,1131 @@
+{
+  "sourceAnchor": "2026-06-01T00:00:00.000Z",
+  "targetSchema": "LUMINAFORGE",
+  "temporalColumns": {
+    "TRANSACTIONS": [
+      "TIMESTAMP"
+    ]
+  },
+  "expectedCounts": {
+    "USERS": 27,
+    "PORTFOLIO": 40,
+    "TRANSACTIONS": 42,
+    "LUXURY_ITEMS": 20
+  },
+  "users": [
+    {
+      "id": 1,
+      "username": "demo_user",
+      "password": "Wealth#2026!",
+      "role": "premium"
+    },
+    {
+      "id": 2,
+      "username": "admin",
+      "password": "Sup3rSecretAdmin#",
+      "role": "admin"
+    },
+    {
+      "id": 3,
+      "username": "j.chen",
+      "password": "As1aPacific!Mgr",
+      "role": "premium"
+    },
+    {
+      "id": 4,
+      "username": "m.vanderbilt",
+      "password": "OldM0ney$1899",
+      "role": "vip"
+    },
+    {
+      "id": 5,
+      "username": "r.sterling",
+      "password": "L0nd0nDesk#FX",
+      "role": "premium"
+    },
+    {
+      "id": 6,
+      "username": "sys_audit",
+      "password": "@udit$ystem26ai",
+      "role": "audit"
+    },
+    {
+      "id": 7,
+      "username": "compliance_bot",
+      "password": "C0mpl1@nce#RO",
+      "role": "compliance"
+    },
+    {
+      "id": 8,
+      "username": "e.ashworth",
+      "password": "Pvt#Bank1ng!",
+      "role": "vip"
+    },
+    {
+      "id": 9,
+      "username": "a.rothschild",
+      "password": "HeritageF0nd!",
+      "role": "vip"
+    },
+    {
+      "id": 10,
+      "username": "trade_engine",
+      "password": "Tr@deEngine#01",
+      "role": "service"
+    },
+    {
+      "id": 11,
+      "username": "j.rockefeller",
+      "password": "Dynast1c$Ofc!",
+      "role": "vip"
+    },
+    {
+      "id": 12,
+      "username": "risk_monitor",
+      "password": "R1sk@M0n1tor!",
+      "role": "risk"
+    },
+    {
+      "id": 13,
+      "username": "k.morgan",
+      "password": "M0rg@nDesk#NY",
+      "role": "premium"
+    },
+    {
+      "id": 14,
+      "username": "s.blackwell",
+      "password": "Blackw3ll$Ofc",
+      "role": "vip"
+    },
+    {
+      "id": 15,
+      "username": "l.dupont",
+      "password": "DuP0ntHeir!",
+      "role": "vip"
+    },
+    {
+      "id": 16,
+      "username": "h.windsor",
+      "password": "W1ndsorTrust#",
+      "role": "vip"
+    },
+    {
+      "id": 17,
+      "username": "p.gates_family",
+      "password": "F@milyOff1ce!",
+      "role": "vip"
+    },
+    {
+      "id": 18,
+      "username": "n.buffett_trust",
+      "password": "Trust3e#2026",
+      "role": "premium"
+    },
+    {
+      "id": 19,
+      "username": "f.marsdorf",
+      "password": "Marsd0rf$CH",
+      "role": "premium"
+    },
+    {
+      "id": 20,
+      "username": "c.carnegie_heir",
+      "password": "Carneg1e#Fund",
+      "role": "vip"
+    },
+    {
+      "id": 21,
+      "username": "treasury_ops",
+      "password": "Tr3asury@Ops",
+      "role": "compliance"
+    },
+    {
+      "id": 22,
+      "username": "aml_scanner",
+      "password": "AML$canner26",
+      "role": "risk"
+    },
+    {
+      "id": 23,
+      "username": "settlement_svc",
+      "password": "S3ttlement#01",
+      "role": "service"
+    },
+    {
+      "id": 24,
+      "username": "wealth_api",
+      "password": "We@lthAPI#Key",
+      "role": "service"
+    },
+    {
+      "id": 25,
+      "username": "tax_filing_bot",
+      "password": "TaxF1le$B0t",
+      "role": "service"
+    },
+    {
+      "id": 26,
+      "username": "portfolio_rebal",
+      "password": "Rebal#Engine2",
+      "role": "service"
+    },
+    {
+      "id": 27,
+      "username": "kyc_reviewer",
+      "password": "KYC_R3view!",
+      "role": "audit"
+    }
+  ],
+  "portfolio": [
+    {
+      "id": 1,
+      "userId": 1,
+      "symbol": "AAPL",
+      "quantity": 150,
+      "avgPrice": 185.5
+    },
+    {
+      "id": 2,
+      "userId": 1,
+      "symbol": "ORCL",
+      "quantity": 200,
+      "avgPrice": 138.3
+    },
+    {
+      "id": 3,
+      "userId": 1,
+      "symbol": "NVDA",
+      "quantity": 80,
+      "avgPrice": 620
+    },
+    {
+      "id": 4,
+      "userId": 1,
+      "symbol": "MSFT",
+      "quantity": 120,
+      "avgPrice": 380.25
+    },
+    {
+      "id": 5,
+      "userId": 1,
+      "symbol": "TSLA",
+      "quantity": 60,
+      "avgPrice": 195.8
+    },
+    {
+      "id": 6,
+      "userId": 1,
+      "symbol": "AMZN",
+      "quantity": 90,
+      "avgPrice": 178.4
+    },
+    {
+      "id": 7,
+      "userId": 1,
+      "symbol": "META",
+      "quantity": 100,
+      "avgPrice": 480
+    },
+    {
+      "id": 8,
+      "userId": 1,
+      "symbol": "GOOGL",
+      "quantity": 55,
+      "avgPrice": 168.9
+    },
+    {
+      "id": 9,
+      "userId": 1,
+      "symbol": "V",
+      "quantity": 130,
+      "avgPrice": 270.5
+    },
+    {
+      "id": 10,
+      "userId": 1,
+      "symbol": "JPM",
+      "quantity": 110,
+      "avgPrice": 198.6
+    },
+    {
+      "id": 11,
+      "userId": 1,
+      "symbol": "GS",
+      "quantity": 75,
+      "avgPrice": 460.1
+    },
+    {
+      "id": 12,
+      "userId": 1,
+      "symbol": "BRK.B",
+      "quantity": 40,
+      "avgPrice": 389.7
+    },
+    {
+      "id": 13,
+      "userId": 1,
+      "symbol": "SPY",
+      "quantity": 200,
+      "avgPrice": 490
+    },
+    {
+      "id": 14,
+      "userId": 1,
+      "symbol": "QQQ",
+      "quantity": 150,
+      "avgPrice": 420.3
+    },
+    {
+      "id": 15,
+      "userId": 1,
+      "symbol": "VTI",
+      "quantity": 180,
+      "avgPrice": 235.6
+    },
+    {
+      "id": 16,
+      "userId": 1,
+      "symbol": "GOLD",
+      "quantity": 500,
+      "avgPrice": 2280
+    },
+    {
+      "id": 17,
+      "userId": 1,
+      "symbol": "SILVER",
+      "quantity": 2000,
+      "avgPrice": 28.5
+    },
+    {
+      "id": 18,
+      "userId": 1,
+      "symbol": "BTC",
+      "quantity": 2,
+      "avgPrice": 58200
+    },
+    {
+      "id": 19,
+      "userId": 1,
+      "symbol": "ETH",
+      "quantity": 18,
+      "avgPrice": 3100
+    },
+    {
+      "id": 20,
+      "userId": 1,
+      "symbol": "SOL",
+      "quantity": 120,
+      "avgPrice": 145
+    },
+    {
+      "id": 21,
+      "userId": 3,
+      "symbol": "ORCL",
+      "quantity": 1200,
+      "avgPrice": 142.5
+    },
+    {
+      "id": 22,
+      "userId": 3,
+      "symbol": "BABA",
+      "quantity": 800,
+      "avgPrice": 88.2
+    },
+    {
+      "id": 23,
+      "userId": 3,
+      "symbol": "TSM",
+      "quantity": 600,
+      "avgPrice": 128.4
+    },
+    {
+      "id": 24,
+      "userId": 3,
+      "symbol": "FXI",
+      "quantity": 1500,
+      "avgPrice": 28.9
+    },
+    {
+      "id": 25,
+      "userId": 4,
+      "symbol": "BRK.B",
+      "quantity": 350,
+      "avgPrice": 392
+    },
+    {
+      "id": 26,
+      "userId": 4,
+      "symbol": "JPM",
+      "quantity": 900,
+      "avgPrice": 201.3
+    },
+    {
+      "id": 27,
+      "userId": 4,
+      "symbol": "V",
+      "quantity": 700,
+      "avgPrice": 272.8
+    },
+    {
+      "id": 28,
+      "userId": 4,
+      "symbol": "GLD",
+      "quantity": 2200,
+      "avgPrice": 218.5
+    },
+    {
+      "id": 29,
+      "userId": 5,
+      "symbol": "GS",
+      "quantity": 450,
+      "avgPrice": 455
+    },
+    {
+      "id": 30,
+      "userId": 5,
+      "symbol": "MS",
+      "quantity": 520,
+      "avgPrice": 102.4
+    },
+    {
+      "id": 31,
+      "userId": 5,
+      "symbol": "EUR/USD",
+      "quantity": 1,
+      "avgPrice": 1.08
+    },
+    {
+      "id": 32,
+      "userId": 5,
+      "symbol": "LVMH",
+      "quantity": 180,
+      "avgPrice": 785
+    },
+    {
+      "id": 33,
+      "userId": 8,
+      "symbol": "NVDA",
+      "quantity": 420,
+      "avgPrice": 615
+    },
+    {
+      "id": 34,
+      "userId": 8,
+      "symbol": "AAPL",
+      "quantity": 300,
+      "avgPrice": 188
+    },
+    {
+      "id": 35,
+      "userId": 8,
+      "symbol": "BTC",
+      "quantity": 12,
+      "avgPrice": 57500
+    },
+    {
+      "id": 36,
+      "userId": 8,
+      "symbol": "ETH",
+      "quantity": 85,
+      "avgPrice": 3050
+    },
+    {
+      "id": 37,
+      "userId": 9,
+      "symbol": "BRK.B",
+      "quantity": 800,
+      "avgPrice": 388.5
+    },
+    {
+      "id": 38,
+      "userId": 9,
+      "symbol": "SPY",
+      "quantity": 2500,
+      "avgPrice": 488
+    },
+    {
+      "id": 39,
+      "userId": 9,
+      "symbol": "QQQ",
+      "quantity": 1800,
+      "avgPrice": 418
+    },
+    {
+      "id": 40,
+      "userId": 9,
+      "symbol": "TLT",
+      "quantity": 3200,
+      "avgPrice": 94.2
+    }
+  ],
+  "transactions": [
+    {
+      "id": 1,
+      "userId": 1,
+      "type": "BUY",
+      "amount": 74000,
+      "asset": "ORCL",
+      "temporal": {
+        "months": 0,
+        "days": -30,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 2,
+      "userId": 1,
+      "type": "BUY",
+      "amount": 49600,
+      "asset": "NVDA",
+      "temporal": {
+        "months": 0,
+        "days": -25,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 3,
+      "userId": 1,
+      "type": "SELL",
+      "amount": 22800,
+      "asset": "TSLA",
+      "temporal": {
+        "months": 0,
+        "days": -22,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 4,
+      "userId": 1,
+      "type": "DIVIDEND",
+      "amount": 3680,
+      "asset": "SPY",
+      "temporal": {
+        "months": 0,
+        "days": -20,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 5,
+      "userId": 1,
+      "type": "BUY",
+      "amount": 98000,
+      "asset": "META",
+      "temporal": {
+        "months": 0,
+        "days": -18,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 6,
+      "userId": 1,
+      "type": "REBALANCE",
+      "amount": 15000,
+      "asset": "VTI",
+      "temporal": {
+        "months": 0,
+        "days": -15,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 7,
+      "userId": 1,
+      "type": "BUY",
+      "amount": 27825,
+      "asset": "AAPL",
+      "temporal": {
+        "months": 0,
+        "days": -12,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 8,
+      "userId": 1,
+      "type": "INTEREST",
+      "amount": 2190,
+      "asset": "JPM",
+      "temporal": {
+        "months": 0,
+        "days": -10,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 9,
+      "userId": 1,
+      "type": "SELL",
+      "amount": 18200,
+      "asset": "AMZN",
+      "temporal": {
+        "months": 0,
+        "days": -8,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 10,
+      "userId": 1,
+      "type": "DIVIDEND",
+      "amount": 1240,
+      "asset": "QQQ",
+      "temporal": {
+        "months": 0,
+        "days": -5,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 11,
+      "userId": 1,
+      "type": "BUY",
+      "amount": 53400,
+      "asset": "BTC",
+      "temporal": {
+        "months": 0,
+        "days": -3,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 12,
+      "userId": 1,
+      "type": "TRANSFER",
+      "amount": 5000,
+      "asset": "CASH",
+      "temporal": {
+        "months": 0,
+        "days": -2,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 13,
+      "userId": 3,
+      "type": "WIRE",
+      "amount": 4750000,
+      "asset": "WIRE-APAC",
+      "temporal": {
+        "months": 0,
+        "days": -14,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 14,
+      "userId": 3,
+      "type": "BUY",
+      "amount": 890000,
+      "asset": "ORCL",
+      "temporal": {
+        "months": 0,
+        "days": -9,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 15,
+      "userId": 4,
+      "type": "WIRE",
+      "amount": 12300000,
+      "asset": "WIRE-US",
+      "temporal": {
+        "months": 0,
+        "days": -11,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 16,
+      "userId": 4,
+      "type": "SETTLE",
+      "amount": 3200000,
+      "asset": "USD-SETTLE",
+      "temporal": {
+        "months": 0,
+        "days": -6,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 17,
+      "userId": 5,
+      "type": "FX",
+      "amount": 2100000,
+      "asset": "EUR/USD",
+      "temporal": {
+        "months": 0,
+        "days": -7,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 18,
+      "userId": 5,
+      "type": "SELL",
+      "amount": 780000,
+      "asset": "GS",
+      "temporal": {
+        "months": 0,
+        "days": -3,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 19,
+      "userId": 8,
+      "type": "WIRE",
+      "amount": 9500000,
+      "asset": "WIRE-PRIVATE",
+      "temporal": {
+        "months": 0,
+        "days": -15,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 20,
+      "userId": 8,
+      "type": "BUY",
+      "amount": 1840000,
+      "asset": "NVDA",
+      "temporal": {
+        "months": 0,
+        "days": -4,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 21,
+      "userId": 9,
+      "type": "SETTLE",
+      "amount": 18750000,
+      "asset": "SETTLE-HF",
+      "temporal": {
+        "months": 0,
+        "days": -20,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 22,
+      "userId": 9,
+      "type": "BUY",
+      "amount": 5600000,
+      "asset": "BRK.B",
+      "temporal": {
+        "months": 0,
+        "days": -1,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 23,
+      "userId": 3,
+      "type": "SELL",
+      "amount": 412000,
+      "asset": "BABA",
+      "temporal": {
+        "months": 0,
+        "days": -13,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 24,
+      "userId": 3,
+      "type": "DIVIDEND",
+      "amount": 28500,
+      "asset": "TSM",
+      "temporal": {
+        "months": 0,
+        "days": -10,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 25,
+      "userId": 3,
+      "type": "BUY",
+      "amount": 156000,
+      "asset": "FXI",
+      "temporal": {
+        "months": 0,
+        "days": -5,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 26,
+      "userId": 3,
+      "type": "TRANSFER",
+      "amount": 89000,
+      "asset": "CASH",
+      "temporal": {
+        "months": 0,
+        "days": -2,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 27,
+      "userId": 4,
+      "type": "BUY",
+      "amount": 640000,
+      "asset": "JPM",
+      "temporal": {
+        "months": 0,
+        "days": -12,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 28,
+      "userId": 4,
+      "type": "DIVIDEND",
+      "amount": 42000,
+      "asset": "V",
+      "temporal": {
+        "months": 0,
+        "days": -8,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 29,
+      "userId": 4,
+      "type": "SELL",
+      "amount": 288000,
+      "asset": "GLD",
+      "temporal": {
+        "months": 0,
+        "days": -4,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 30,
+      "userId": 4,
+      "type": "INTEREST",
+      "amount": 18500,
+      "asset": "BRK.B",
+      "temporal": {
+        "months": 0,
+        "days": -1,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 31,
+      "userId": 5,
+      "type": "BUY",
+      "amount": 925000,
+      "asset": "LVMH",
+      "temporal": {
+        "months": 0,
+        "days": -11,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 32,
+      "userId": 5,
+      "type": "WIRE",
+      "amount": 1800000,
+      "asset": "WIRE-EU",
+      "temporal": {
+        "months": 0,
+        "days": -9,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 33,
+      "userId": 5,
+      "type": "DIVIDEND",
+      "amount": 31000,
+      "asset": "MS",
+      "temporal": {
+        "months": 0,
+        "days": -5,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 34,
+      "userId": 5,
+      "type": "REBALANCE",
+      "amount": 142000,
+      "asset": "GS",
+      "temporal": {
+        "months": 0,
+        "days": -2,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 35,
+      "userId": 8,
+      "type": "SELL",
+      "amount": 520000,
+      "asset": "AAPL",
+      "temporal": {
+        "months": 0,
+        "days": -13,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 36,
+      "userId": 8,
+      "type": "BUY",
+      "amount": 890000,
+      "asset": "BTC",
+      "temporal": {
+        "months": 0,
+        "days": -10,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 37,
+      "userId": 8,
+      "type": "TRANSFER",
+      "amount": 250000,
+      "asset": "CASH",
+      "temporal": {
+        "months": 0,
+        "days": -6,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 38,
+      "userId": 8,
+      "type": "DIVIDEND",
+      "amount": 48000,
+      "asset": "NVDA",
+      "temporal": {
+        "months": 0,
+        "days": -2,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 39,
+      "userId": 9,
+      "type": "SELL",
+      "amount": 3200000,
+      "asset": "SPY",
+      "temporal": {
+        "months": 0,
+        "days": -14,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 40,
+      "userId": 9,
+      "type": "BUY",
+      "amount": 1450000,
+      "asset": "QQQ",
+      "temporal": {
+        "months": 0,
+        "days": -8,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 41,
+      "userId": 9,
+      "type": "REBALANCE",
+      "amount": 680000,
+      "asset": "TLT",
+      "temporal": {
+        "months": 0,
+        "days": -4,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    },
+    {
+      "id": 42,
+      "userId": 9,
+      "type": "WIRE",
+      "amount": 4200000,
+      "asset": "WIRE-HF",
+      "temporal": {
+        "months": 0,
+        "days": -1,
+        "milliseconds": 0,
+        "lastDayOfMonth": false
+      }
+    }
+  ],
+  "luxuryItems": [
+    {
+      "id": 1,
+      "name": "Oracle Corp (ORCL)",
+      "price": 141.5,
+      "category": "stock"
+    },
+    {
+      "id": 2,
+      "name": "Microsoft Corp (MSFT)",
+      "price": 415.2,
+      "category": "stock"
+    },
+    {
+      "id": 3,
+      "name": "JPMorgan Chase (JPM)",
+      "price": 198.6,
+      "category": "stock"
+    },
+    {
+      "id": 4,
+      "name": "NVIDIA Corp (NVDA)",
+      "price": 924.6,
+      "category": "stock"
+    },
+    {
+      "id": 5,
+      "name": "Apple Inc (AAPL)",
+      "price": 187.23,
+      "category": "stock"
+    },
+    {
+      "id": 6,
+      "name": "US Treasury Bond 10Y",
+      "price": 101.8,
+      "category": "bond"
+    },
+    {
+      "id": 7,
+      "name": "US Treasury Bill 6M",
+      "price": 99.4,
+      "category": "bond"
+    },
+    {
+      "id": 8,
+      "name": "Investment Grade Corp Bond A",
+      "price": 102.3,
+      "category": "bond"
+    },
+    {
+      "id": 9,
+      "name": "High Yield Corp Bond B",
+      "price": 95.7,
+      "category": "bond"
+    },
+    {
+      "id": 10,
+      "name": "Vanguard S&P 500 ETF (VOO)",
+      "price": 490,
+      "category": "etf"
+    },
+    {
+      "id": 11,
+      "name": "SPDR S&P 500 ETF (SPY)",
+      "price": 488,
+      "category": "etf"
+    },
+    {
+      "id": 12,
+      "name": "Invesco QQQ Trust (QQQ)",
+      "price": 418,
+      "category": "etf"
+    },
+    {
+      "id": 13,
+      "name": "Vanguard Total Market ETF (VTI)",
+      "price": 235.6,
+      "category": "etf"
+    },
+    {
+      "id": 14,
+      "name": "Bitcoin (BTC)",
+      "price": 68450,
+      "category": "crypto"
+    },
+    {
+      "id": 15,
+      "name": "Ethereum (ETH)",
+      "price": 3620,
+      "category": "crypto"
+    },
+    {
+      "id": 16,
+      "name": "Solana (SOL)",
+      "price": 145,
+      "category": "crypto"
+    },
+    {
+      "id": 17,
+      "name": "Gold Spot (XAU)",
+      "price": 2280,
+      "category": "metal"
+    },
+    {
+      "id": 18,
+      "name": "Silver Spot (XAG)",
+      "price": 28.5,
+      "category": "metal"
+    },
+    {
+      "id": 19,
+      "name": "20+ Year Treasury ETF (TLT)",
+      "price": 94.2,
+      "category": "bond_etf"
+    },
+    {
+      "id": 20,
+      "name": "Corporate Bond ETF (LQD)",
+      "price": 109.3,
+      "category": "bond_etf"
+    }
+  ]
+}

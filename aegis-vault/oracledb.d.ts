@@ -15,6 +15,8 @@ declare module "oracledb" {
       binds?: Record<string, unknown>,
       options?: Record<string, unknown>,
     ): Promise<{ rows?: T[]; outBinds?: Record<string, unknown> }>;
+    commit(): Promise<void>;
+    rollback(): Promise<void>;
     close(): Promise<void>;
   }
 
@@ -23,6 +25,7 @@ declare module "oracledb" {
     BIND_OUT: number;
     CURSOR: number;
     STRING: number;
+    NUMBER: number;
     CLOB: number;
     outFormat: number;
     fetchAsString: number[];

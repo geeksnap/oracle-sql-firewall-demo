@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from "react";
 import { createSingleFlight } from "@/lib/single-flight";
-import { motion, AnimatePresence } from "framer-motion";
 import { GlassCard } from "./GlassCard";
 import { ATTACK4_WAF_BYPASS_FALLBACK } from "@/lib/waf-bypass-demo-payloads";
 import { alertIfWafBlocked, WAF_BLOCK_INLINE_ERROR } from "@/lib/waf-block-alert";

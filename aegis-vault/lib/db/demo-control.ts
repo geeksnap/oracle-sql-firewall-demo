@@ -8,6 +8,7 @@ import {
   runLuminaforgeAppContextTraining,
 } from "./luminaforge-session";
 import { withConnection } from "./pool";
+import { executeDemoSeedInitialization } from "./demo-seed";
 
 export type { DemoAction, DemoScope } from "../demo-control-types";
 
@@ -29,6 +30,7 @@ const SCOPE_ACTIONS: Record<DemoScope, DemoAction[]> = {
     "view-sql-monitor",
     "view-capture-status",
     "reinit-default-transaction-data",
+    "initialize-demo-seed-data",
   ],
 };
 
@@ -96,6 +98,8 @@ function sqlForAction(scope: DemoScope, action: DemoAction): string {
       return `BEGIN SYS.aegis_demo_control.view_capture_status('${user}', :cur); END;`;
     case "reinit-default-transaction-data":
       return "BEGIN SYS.aegis_demo_control.reinit_default_transaction_data(:msg); END;";
+    case "initialize-demo-seed-data":
+      return "BEGIN SYS.aegis_demo_control.initialize_demo_seed_data(:anchor, :users, :portfolio, :transactions, :luxury_items); END;";
     default:
       return "";
   }
@@ -150,6 +154,8 @@ function displaySql(scope: DemoScope, action: DemoAction): string {
       return `-- Via SYS.aegis_demo_control (definer)\nSELECT ... FROM dba_sql_firewall_captures\nWHERE username = '${user}'`;
     case "reinit-default-transaction-data":
       return "BEGIN SYS.aegis_demo_control.reinit_default_transaction_data(:msg); END;";
+    case "initialize-demo-seed-data":
+      return "BEGIN SYS.aegis_demo_control.initialize_demo_seed_data(:anchor, :users, :portfolio, :transactions, :luxury_items); END;";
     default:
       return "";
   }
@@ -212,6 +218,14 @@ export interface DemoExecuteResult {
   metrics?: DashboardMetrics;
   /** Present when init-default-policy leaves capture running for manual finalize */
   initManualFinalize?: InitManualFinalizeGuide;
+  seedAnchor?: string;
+  seedCounts?: {
+    users: number;
+    portfolio: number;
+    transactions: number;
+    luxuryItems: number;
+  };
+  rolledBack?: boolean;
 }
 
 async function executeInitDefaultPolicy(): Promise<DemoExecuteResult> {
@@ -275,6 +289,31 @@ export async function executeDemoAction(
   scope: DemoScope,
   action: DemoAction,
 ): Promise<DemoExecuteResult> {
+  if (action === "initialize-demo-seed-data") {
+    const sql = displaySql(scope, action);
+    try {
+      const result = await executeDemoSeedInitialization();
+      return {
+        sql,
+        output: result.ok
+          ? `Seed initialized at ${result.anchor}\nUSERS=${result.counts?.users} | PORTFOLIO=${result.counts?.portfolio} | TRANSACTIONS=${result.counts?.transactions} | LUXURY_ITEMS=${result.counts?.luxuryItems}`
+          : `${result.error}\nRollback ${result.rolledBack ? "completed" : "could not be confirmed"}.`,
+        ok: result.ok,
+        mutating: true,
+        seedAnchor: result.anchor,
+        seedCounts: result.counts,
+        rolledBack: result.rolledBack,
+      };
+    } catch (error) {
+      return {
+        sql,
+        output: error instanceof Error ? error.message : "Demo seed initialization failed",
+        ok: false,
+        mutating: true,
+        rolledBack: false,
+      };
+    }
+  }
   if (action === "init-default-policy") {
     return executeInitDefaultPolicy();
   }

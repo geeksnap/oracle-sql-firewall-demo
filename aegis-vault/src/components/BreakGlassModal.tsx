@@ -64,10 +64,11 @@ export function BreakGlassModal({ open, onClose, onSuccess }: BreakGlassModalPro
         </h2>
         <div className="mt-5 space-y-4">
           <div>
-            <label className="mb-1.5 block text-xs uppercase tracking-wider text-slate-500">
+            <label htmlFor="break-glass-user" className="mb-1.5 block text-xs uppercase tracking-wider text-slate-500">
               Break-Glass User
             </label>
             <input
+              id="break-glass-user"
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
@@ -78,10 +79,11 @@ export function BreakGlassModal({ open, onClose, onSuccess }: BreakGlassModalPro
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-xs uppercase tracking-wider text-slate-500">
+            <label htmlFor="break-glass-password" className="mb-1.5 block text-xs uppercase tracking-wider text-slate-500">
               Password
             </label>
             <input
+              id="break-glass-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

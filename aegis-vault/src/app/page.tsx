@@ -18,6 +18,8 @@ import { Sidebar, type NavSection } from "@/components/Sidebar";
 import { DemoControlPanel } from "@/components/DemoControlPanel";
 import { LatestThreatsPanel } from "@/components/LatestThreatsPanel";
 import { ViolationsTable } from "@/components/ViolationsTable";
+import { BreakGlassModal } from "@/components/BreakGlassModal";
+import { InitializeDemoSeedModal } from "@/components/InitializeDemoSeedModal";
 
 function isFirewallViolation(v: FirewallViolation): boolean {
   return v.source_app === "luminaforge" || v.source_app === "AEGIS_APP";
@@ -39,6 +41,12 @@ export default function HomePage() {
   const [firewallOverride, setFirewallOverride] = useState<boolean | null>(null);
   const [luminaAlertUntil, setLuminaAlertUntil] = useState(0);
   const [globeFlashing, setGlobeFlashing] = useState(false);
+  const [breakGlassGrant, setBreakGlassGrant] = useState(false);
+  const [breakGlassIntent, setBreakGlassIntent] = useState<
+    "control" | "seed" | null
+  >(null);
+  const [breakGlassOpen, setBreakGlassOpen] = useState(false);
+  const [seedModalOpen, setSeedModalOpen] = useState(false);
   const lastAttackAlertRef = useRef<{ key: string; at: number } | null>(null);
   const globeFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const attackLabelTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -56,9 +64,45 @@ export default function HomePage() {
     }, 10_000);
   }, []);
 
-  const handleNavSelect = useCallback((next: NavSection) => {
-    setSection(next);
+  const clearBreakGlassGrant = useCallback(() => {
+    setBreakGlassGrant(false);
+    void fetch("/api/break-glass/logout", { method: "POST" }).catch(
+      () => undefined,
+    );
   }, []);
+
+  const handleNavSelect = useCallback(
+    (next: NavSection) => {
+      if (next === "break-glass-control") {
+        setBreakGlassIntent("control");
+        setBreakGlassOpen(true);
+        return;
+      }
+      if (section === "break-glass-control") clearBreakGlassGrant();
+      setSection(next);
+    },
+    [clearBreakGlassGrant, section],
+  );
+
+  const handleInitializeSeed = useCallback(() => {
+    if (breakGlassGrant) {
+      setSeedModalOpen(true);
+      return;
+    }
+    setBreakGlassIntent("seed");
+    setBreakGlassOpen(true);
+  }, [breakGlassGrant]);
+
+  const handleBreakGlassSuccess = useCallback(() => {
+    setBreakGlassGrant(true);
+    setBreakGlassOpen(false);
+    if (breakGlassIntent === "control") {
+      setSection("break-glass-control");
+    } else if (breakGlassIntent === "seed") {
+      setSeedModalOpen(true);
+    }
+    setBreakGlassIntent(null);
+  }, [breakGlassIntent]);
 
   useEffect(() => {
     void fetch("/api/build")
@@ -256,7 +300,11 @@ export default function HomePage() {
         </div>
 
         <div className="grid min-h-0 flex-1 grid-cols-1 items-stretch gap-4 overflow-hidden lg:grid-cols-[220px_1fr_340px]">
-          <Sidebar active={section} onSelect={handleNavSelect} />
+          <Sidebar
+            active={section}
+            onSelect={handleNavSelect}
+            onInitializeDemoSeed={handleInitializeSeed}
+          />
 
           <section
             className={cn(
@@ -315,6 +363,19 @@ export default function HomePage() {
           </aside>
         </div>
       </div>
+      <BreakGlassModal
+        open={breakGlassOpen}
+        onClose={() => {
+          setBreakGlassOpen(false);
+          setBreakGlassIntent(null);
+        }}
+        onSuccess={handleBreakGlassSuccess}
+      />
+      <InitializeDemoSeedModal
+        open={seedModalOpen}
+        onClose={() => setSeedModalOpen(false)}
+        onGrantConsumed={() => setBreakGlassGrant(false)}
+      />
     </main>
   );
 }
