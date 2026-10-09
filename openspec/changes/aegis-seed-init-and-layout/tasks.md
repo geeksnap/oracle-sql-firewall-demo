@@ -15,15 +15,15 @@
 
 ## 3. Sidebar treatments and 12:9 frame
 
-- [ ] 3.1 Swap Break-Glass (filled) and Initialize Demo Seed Data (outline) classNames and verify Playwright still finds both controls with the swapped treatments
+- [x] 3.1 Swap Break-Glass (filled) and Initialize Demo Seed Data (outline) classNames and verify Playwright still finds both controls with the swapped treatments
 - [x] 3.2 Change the outer application frame from `aspect-square` to landscape `aspect-[12/9]` sized to the largest fitting 12:9 box, apply the same ratio wherever the square frame is defined, and verify no 1:1 or 16:9 shell class remains
 - [x] 3.3 Update `aegis-vault/SPEC-aegis.md` layout + seed-grant notes and verify they match 12:9, filled/outline, and HTTP grant behavior
 
 ## 4. Integration checks
 
-- [ ] 4.1 Run Aegis unit tests, Playwright presenter flow, typecheck, lint, and production build; verify they pass
-- [ ] 4.2 Strict-validate this OpenSpec change and verify `openspec validate --strict --change aegis-seed-init-and-layout` passes
-- [ ] 4.3 Exercise the UI in a browser (local and/or live): 12:9 frame, swapped buttons, break-glass → seed confirm; capture screenshots under the assigned media path. If live OCI cannot be patched without `~/.ssh/id_ed25519_sqlfw.key`, record that blocker instead of a successful live seed init
+- [x] 4.1 Run Aegis unit tests, Playwright presenter flow, typecheck, lint, and production build; verify they pass
+- [x] 4.2 Strict-validate this OpenSpec change and verify `openspec validate --strict --change aegis-seed-init-and-layout` passes
+- [x] 4.3 Exercise the UI in a browser (local and/or live): 12:9 frame, swapped buttons, break-glass → seed confirm; capture screenshots under the assigned media path. If live OCI cannot be patched without `~/.ssh/id_ed25519_sqlfw.key`, record that blocker instead of a successful live seed init
 
 ## Workflow follow-up
 
