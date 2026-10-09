@@ -4,12 +4,12 @@ Deploy the SQL Firewall demo from **OCI Console → Developer Services → Resou
 
 ## Release assets (preferred)
 
-Published stack zips for tag **[`orm-stacks-20261009`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261009)**:
+Published stack zips for tag **[`orm-stacks-20261009-2`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261009-2)**:
 
 | Asset | Upload order | Direct download |
 |-------|--------------|-----------------|
-| `sqlfw-db-stack.zip` | **1st** | https://github.com/geeksnap/oracle-sql-firewall-demo/releases/download/orm-stacks-20261009/sqlfw-db-stack.zip |
-| `sqlfw-compute-stack.zip` | **2nd** | https://github.com/geeksnap/oracle-sql-firewall-demo/releases/download/orm-stacks-20261009/sqlfw-compute-stack.zip |
+| `sqlfw-db-stack.zip` | **1st** | https://github.com/geeksnap/oracle-sql-firewall-demo/releases/download/orm-stacks-20261009-2/sqlfw-db-stack.zip |
+| `sqlfw-compute-stack.zip` | **2nd** | https://github.com/geeksnap/oracle-sql-firewall-demo/releases/download/orm-stacks-20261009-2/sqlfw-compute-stack.zip |
 
 | Asset | Contents |
 |-------|----------|
