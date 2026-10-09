@@ -1,5 +1,5 @@
 region         = "ap-singapore-1"
-compartment_id = "ocid1.compartment.oc1..aaaaaaaaqcvjcdgexiyboeveqjc3izpzgk52mjmcf5qcelz2fvdbmhdg6b6q"
+compartment_id = "ocid1.compartment.oc1..aaaaaaaaEXAMPLE_REPLACE_WITH_YOUR_COMPARTMENT_OCID"
 project_prefix = "sqlfw-demo"
 
 ssh_public_key = "ssh-ed25519 AAAA... your-key"
@@ -13,7 +13,7 @@ github_branch    = "main"
 # See terraform/db/terraform.tfvars → allow_ssh_cidr
 
 # --- REQUIRED for OCI Resource Manager (Console) — DB stack OCID after DB Apply succeeds
-db_stack_id = "ocid1.ormstack.oc1..aaaaaaaaexample"
+db_stack_id = "ocid1.ormstack.oc1..aaaaaaaaEXAMPLE_REPLACE_WITH_DB_STACK_OCID"
 
 # --- Local CLI only — leave db_stack_id unset and use path after `terraform apply` in ../db
 # db_state_path = "../db/terraform.tfstate"

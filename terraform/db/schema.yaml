@@ -1,0 +1,148 @@
+# OCI Resource Manager schema — SQL Firewall demo DB stack (VCN + Base DB 26ai)
+# Variable names MUST match terraform/db/variables.tf
+title: "SQL Firewall Demo — Database stack"
+description: "Provisions VCN, subnets, security lists, and Oracle Base Database 26ai (PDB) for the SQL Firewall demo. Apply this stack first, then the compute stack with db_stack_id set to this stack OCID."
+stackDescription: "DB + network foundation for Aegis Vault / LuminaForge SQL Firewall demo"
+schemaVersion: 1.1.0
+version: "20261008"
+locale: "en"
+
+variableGroups:
+  - title: "Required"
+    visible: true
+    variables:
+      - region
+      - compartment_id
+      - ssh_public_key
+      - db_home_version
+      - allow_ssh_cidr
+
+  - title: "Passwords (sensitive)"
+    visible: true
+    variables:
+      - sys_password
+      - app_db_password
+
+  - title: "Optional"
+    visible: true
+    variables:
+      - project_prefix
+      - pdb_name
+      - vcn_cidr
+      - compute_subnet_cidr
+      - db_subnet_cidr
+
+variables:
+  region:
+    type: oci:identity:region:name
+    title: "Region"
+    description: "Must match the Console region selector (top-right). Use the same value in the compute stack."
+    required: true
+
+  compartment_id:
+    type: oci:identity:compartment:id
+    title: "Compartment"
+    description: "Compartment where VCN, subnets, and Base DB are created. Copy your OCID from Identity → Compartments if the picker is unavailable."
+    required: true
+
+  ssh_public_key:
+    type: string
+    title: "SSH public key"
+    description: "Full single-line contents of your .pub key (e.g. ssh-ed25519 AAAA... comment)."
+    required: true
+
+  db_home_version:
+    type: string
+    title: "DB home version (26ai)"
+    description: "Oracle Database home version string for 26ai in your region (e.g. 26.0.0.0.0). Confirm with oci db version list."
+    required: true
+    default: "26.0.0.0.0"
+
+  allow_ssh_cidr:
+    type: string
+    title: "Allowed ingress CIDR"
+    description: "CIDR for SSH (22) and app ports 3000/3001 on the compute subnet security list. Prefer YOUR.PUBLIC.IP/32; use 0.0.0.0/0 only for open demos. Changing this requires Plan → Apply."
+    required: true
+    default: "0.0.0.0/0"
+
+  sys_password:
+    type: password
+    title: "SYS / SYSTEM password"
+    description: "OCI rules: 9+ chars, 2 upper, 2 lower, 2 digit, 2 of _ - #. Must NOT contain the substrings Oracle or sys. Leave blank to use the stack Terraform default (demo-only — set your own for shared tenancies)."
+    required: false
+    confirmation: true
+
+  app_db_password:
+    type: password
+    title: "App DB password"
+    description: "Password for AEGIS_APP and luminaforge users. Must NOT contain Oracle. Leave blank to use the stack Terraform default (demo-only)."
+    required: false
+    confirmation: true
+
+  project_prefix:
+    type: string
+    title: "Project prefix"
+    description: "Prefix for resource display names."
+    required: false
+    default: "sqlfw-demo"
+
+  pdb_name:
+    type: string
+    title: "PDB name"
+    description: "Pluggable database name used by demo SQL bootstrap."
+    required: false
+    default: "SQLFWPDB1"
+
+  vcn_cidr:
+    type: string
+    title: "VCN CIDR"
+    description: "Only change if 10.40.0.0/16 overlaps an existing VCN in the compartment."
+    required: false
+    default: "10.40.0.0/16"
+
+  compute_subnet_cidr:
+    type: string
+    title: "Compute subnet CIDR"
+    description: "Public compute subnet CIDR inside the VCN."
+    required: false
+    default: "10.40.0.0/24"
+
+  db_subnet_cidr:
+    type: string
+    title: "DB subnet CIDR"
+    description: "Private DB subnet CIDR inside the VCN."
+    required: false
+    default: "10.40.1.0/24"
+
+outputs:
+  db_connection_string:
+    type: string
+    title: "DB connection string"
+    description: "Easy Connect string for apps (private)."
+    visible: true
+
+  pdb_name:
+    type: string
+    title: "PDB name"
+    visible: true
+
+  sys_password:
+    type: password
+    title: "SYS password"
+    description: "Sensitive — reveal in Console Outputs when needed for bootstrap troubleshooting."
+    visible: true
+
+  app_db_password:
+    type: password
+    title: "App DB password"
+    visible: true
+
+  compute_subnet_id:
+    type: string
+    title: "Compute subnet OCID"
+    visible: true
+
+  vcn_id:
+    type: string
+    title: "VCN OCID"
+    visible: true

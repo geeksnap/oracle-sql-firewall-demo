@@ -43,13 +43,14 @@ cd luminaforge && npm ci && cd ..
 | **Local dev** | `./start.sh` / `./stop.sh` (`aegis` \| `lumina` \| `both`; `--check-db`, `--skip-db-check`, `--mode prod`) | PDB must already be running; `./start.sh --check-db` probes connectivity |
 | **OCI compute VM** | `./start.sh --mode oci` / `./stop.sh --mode oci` (systemd: `aegis-vault`, `luminaforge`) | Start Base DB in OCI Console (**AVAILABLE**) before apps; stop Base DB after `./stop.sh --mode oci` to save cost |
 
-OCI deploy and teardown: [`terraform/README.md`](terraform/README.md) · Console-only path: [`terraform/OCI-CONSOLE-QUICKSTART.md`](terraform/OCI-CONSOLE-QUICKSTART.md)
+OCI deploy and teardown: [`terraform/README.md`](terraform/README.md) · Console-only path: [`terraform/OCI-CONSOLE-QUICKSTART.md`](terraform/OCI-CONSOLE-QUICKSTART.md) · **Download Console Terraform zips:** [`terraform/DOWNLOAD.md`](terraform/DOWNLOAD.md)
 
 ## Documentation
 
 | Document | Purpose |
 |----------|---------|
 | [`docs/DEMO-BRIEFING-SCRIPT.md`](docs/DEMO-BRIEFING-SCRIPT.md) | Presenter script + current OCI demo URLs |
+| [`terraform/DOWNLOAD.md`](terraform/DOWNLOAD.md) | **Download** Resource Manager zips (`sqlfw-*-stack.zip`) from GitHub Releases |
 | [`terraform/README.md`](terraform/README.md) | **OCI Terraform** — DB + Compute stacks, GitHub PAT, demo policy init |
 | [`terraform/OCI-CONSOLE-QUICKSTART.md`](terraform/OCI-CONSOLE-QUICKSTART.md) | One-page OCI Console deploy (no local `terraform apply`) |
 | [`aegis-vault/SPEC-aegis.md`](aegis-vault/SPEC-aegis.md) | Aegis Vault OpenSpec (Demo Control, SOC UI) |

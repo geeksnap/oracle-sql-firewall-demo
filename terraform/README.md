@@ -45,7 +45,8 @@ Both methods use the **same** `.tf` files. Only how DB outputs reach the compute
 
 ## Deploy via OCI Console Terraform (Resource Manager)
 
-> **Prefer a single page?** See **[OCI-CONSOLE-QUICKSTART.md](OCI-CONSOLE-QUICKSTART.md)**.
+> **Prefer a single page?** See **[OCI-CONSOLE-QUICKSTART.md](OCI-CONSOLE-QUICKSTART.md)**.  
+> **Download zips?** See **[DOWNLOAD.md](DOWNLOAD.md)** (GitHub Release assets).
 
 Use this when you run Terraform from **OCI Console** (Developer Services → **Resource Manager** → **Stacks**), not from your laptop.
 
@@ -56,14 +57,16 @@ Use this when you run Terraform from **OCI Console** (Developer Services → **R
 | State storage | `terraform/db/terraform.tfstate` on disk | Managed by Resource Manager (Object Storage) |
 | Compute reads DB outputs | `db_state_path = "../db/terraform.tfstate"` | **`db_stack_id`** = OCID of DB stack |
 | Provider auth | `~/.oci/config` on laptop | Automatic for stack jobs |
-| Config upload | Folder on disk | **Zip per stack** (`.tf` files at zip root) |
-| Variables | `terraform.tfvars` (gitignored) | Stack **Variables** tab in Console |
+| Config upload | Folder on disk | **Zip per stack** (`.tf` + `schema.yaml` at zip root) |
+| Variables | `terraform.tfvars` (gitignored) | Stack **Variables** tab in Console (schema-driven) |
 
 No `backend` block is required — Resource Manager manages state for each stack.
 
-### RM-1 — Package stacks as zip files
+### RM-1 — Obtain stack zip files
 
-From the repo:
+**Preferred:** download `sqlfw-db-stack.zip` and `sqlfw-compute-stack.zip` from [GitHub Releases](https://github.com/geeksnap/oracle-sql-firewall-demo/releases) — see **[DOWNLOAD.md](DOWNLOAD.md)**.
+
+**Alternate** — build from a clone:
 
 ```bash
 cd terraform
@@ -76,24 +79,25 @@ Creates:
 - `terraform/sqlfw-db-stack.zip` — upload first
 - `terraform/sqlfw-compute-stack.zip` — upload after DB stack succeeds
 
-Each zip contains only that stack’s `.tf` files (no `terraform.tfvars`, no local state).
+Each zip contains that stack’s `.tf` files and `schema.yaml` (no real `terraform.tfvars`, no local state). CI workflow: `.github/workflows/package-orm-stacks.yml`.
 
 ### RM-2 — Create and apply DB stack
 
 1. **OCI Console** → **Developer Services** → **Resource Manager** → **Stacks** → **Create stack**
 2. **Zip file** → upload `sqlfw-db-stack.zip`
 3. **Compartment** → same compartment as your demo resources
-4. **Variables** — add (match `terraform/db/terraform.tfvars.example`):
+4. **Variables** — add (match `terraform/db/terraform.tfvars.example` / schema):
 
 | Variable | Example / notes |
 |----------|-----------------|
 | `region` | `ap-singapore-1` |
-| `compartment_id` | `ocid1.compartment.oc1..aaaaaaaaqcvjcdgexiyboeveqjc3izpzgk52mjmcf5qcelz2fvdbmhdg6b6q` |
+| `compartment_id` | `ocid1.compartment.oc1..aaaaaaaaEXAMPLE_REPLACE_WITH_YOUR_COMPARTMENT_OCID` |
 | `ssh_public_key` | Full line from `~/.ssh/id_ed25519_sqlfw.pub` |
 | `db_home_version` | **26ai** — use the `26.x.x.x.x` version string from `oci db version list` in your region (see §1.4, e.g. `26.0.0.0.0`) |
 | `allow_ssh_cidr` | Your public IP `/32` (or `0.0.0.0/0`) — controls SSH + app ports 3000/3001; **Apply** after change |
 | `pdb_name` | `SQLFWPDB1` (optional) |
 | `project_prefix` | `sqlfw-demo` (optional) |
+| `sys_password` / `app_db_password` | Set your own OCI-compliant passwords in Variables (placeholders only in examples) |
 
 5. **Create** → **Plan** → review → **Apply**
 6. Wait until job succeeds and Base DB lifecycle is **AVAILABLE** (**60–90+ min**).
@@ -282,7 +286,7 @@ Oracle Database **26ai** uses version strings in the `26.x.x.x.x` format (e.g. `
 **Step 1 — set compartment and region** (must match `terraform/db/terraform.tfvars`):
 
 ```bash
-export COMPARTMENT_ID="ocid1.compartment.oc1..aaaaaaaaqcvjcdgexiyboeveqjc3izpzgk52mjmcf5qcelz2fvdbmhdg6b6q"
+export COMPARTMENT_ID="ocid1.compartment.oc1..aaaaaaaaEXAMPLE_REPLACE_WITH_YOUR_COMPARTMENT_OCID"
 export OCI_REGION="ap-tokyo-1"    # same as region in terraform.tfvars / ~/.oci/config
 export SUPPRESS_LABEL_WARNING=True   # optional — silences OCI API key label warning
 ```
@@ -380,7 +384,7 @@ Edit **both** files. Minimum required:
 
 ```hcl
 region         = "your-region"
-compartment_id = "ocid1.compartment.oc1..aaaaaaaaqcvjcdgexiyboeveqjc3izpzgk52mjmcf5qcelz2fvdbmhdg6b6q"
+compartment_id = "ocid1.compartment.oc1..aaaaaaaaEXAMPLE_REPLACE_WITH_YOUR_COMPARTMENT_OCID"
 ssh_public_key = "ssh-ed25519 AAAA... your-key"
 project_prefix = "sqlfw-demo"    # must match in BOTH stacks if you change it
 ```

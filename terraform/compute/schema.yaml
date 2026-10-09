@@ -1,0 +1,142 @@
+# OCI Resource Manager schema — SQL Firewall demo compute stack (apps + optional WAF/LB)
+# Variable names MUST match terraform/compute/variables.tf
+# REQUIRED: set db_stack_id to the DB Resource Manager stack OCID after DB Apply succeeds.
+title: "SQL Firewall Demo — Compute stack"
+description: "Provisions the Ubuntu compute VM (Aegis Vault :3000, LuminaForge :3001), bootstraps the PDB schema, and optionally creates Load Balancer + WAF. Requires the DB stack OCID in db_stack_id."
+stackDescription: "Compute + apps (+ WAF/LB) for SQL Firewall demo — set db_stack_id first"
+schemaVersion: 1.1.0
+version: "20261008"
+locale: "en"
+
+variableGroups:
+  - title: "Required (Console)"
+    visible: true
+    variables:
+      - region
+      - compartment_id
+      - ssh_public_key
+      - db_stack_id
+
+  - title: "GitHub source"
+    visible: true
+    variables:
+      - github_repo_url
+      - github_branch
+
+  - title: "WAF / Load Balancer"
+    visible: true
+    variables:
+      - enable_waf
+      - load_balancer_bandwidth_mbps
+
+  - title: "Optional overrides (sensitive)"
+    visible: true
+    variables:
+      - project_prefix
+      - override_sys_password
+      - override_app_db_password
+      - override_db_connection_string
+
+variables:
+  region:
+    type: oci:identity:region:name
+    title: "Region"
+    description: "Must match the DB stack region and the Console region selector."
+    required: true
+
+  compartment_id:
+    type: oci:identity:compartment:id
+    title: "Compartment"
+    description: "Must match the DB stack compartment."
+    required: true
+
+  ssh_public_key:
+    type: string
+    title: "SSH public key"
+    description: "Same public key used on the DB stack (ubuntu user on the compute VM)."
+    required: true
+
+  db_stack_id:
+    type: string
+    title: "DB Resource Manager stack OCID"
+    description: "REQUIRED for OCI Console. Copy from DB stack → Stack information → OCID (starts with ocid1.ormstack.). Do not leave empty in Resource Manager."
+    required: true
+
+  github_repo_url:
+    type: string
+    title: "GitHub repo URL"
+    description: "HTTPS clone URL. Public repo needs no token. Private: https://<TOKEN>@github.com/org/repo.git (mark sensitive in Console if offered)."
+    required: false
+    default: "https://github.com/geeksnap/oracle-sql-firewall-demo.git"
+
+  github_branch:
+    type: string
+    title: "GitHub branch"
+    description: "Branch the VM clones during cloud-init."
+    required: false
+    default: "main"
+
+  enable_waf:
+    type: boolean
+    title: "Enable WAF + Load Balancer"
+    description: "When true (default), creates sqlfw-demo-lb and demo-waf-firewall for the LuminaForge edge path."
+    required: false
+    default: true
+
+  load_balancer_bandwidth_mbps:
+    type: number
+    title: "Load balancer bandwidth (Mbps)"
+    description: "Flexible LB shape bandwidth when enable_waf is true."
+    required: false
+    default: 10
+
+  project_prefix:
+    type: string
+    title: "Project prefix"
+    description: "Must match DB stack project_prefix."
+    required: false
+    default: "sqlfw-demo"
+
+  override_sys_password:
+    type: password
+    title: "Override SYS password"
+    description: "Optional. Leave blank to use sys_password from DB stack remote state."
+    required: false
+    confirmation: true
+
+  override_app_db_password:
+    type: password
+    title: "Override app DB password"
+    description: "Optional. Leave blank to use app_db_password from DB stack remote state."
+    required: false
+    confirmation: true
+
+  override_db_connection_string:
+    type: string
+    title: "Override DB connection string"
+    description: "Optional. Leave blank to use db_connection_string from DB stack remote state."
+    required: false
+
+outputs:
+  compute_public_ip:
+    type: string
+    title: "Compute public IP"
+    visible: true
+
+  aegis_vault_url:
+    type: string
+    title: "Aegis Vault URL"
+    description: "http://<ip>:3000"
+    visible: true
+
+  luminaforge_url:
+    type: string
+    title: "LuminaForge direct URL"
+    description: "http://<ip>:3001"
+    visible: true
+
+  luminaforge_waf_url:
+    type: string
+    title: "LuminaForge WAF / LB URL"
+    description: "Present when enable_waf is true."
+    visible: true

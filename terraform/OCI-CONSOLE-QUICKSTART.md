@@ -111,7 +111,7 @@ Set `enable_waf = false` in compute stack Variables to skip LB/WAF (direct `:300
 26ai versions appear as **`26.x.x.x.x`** (e.g. `26.0.0.0.0`). Use the latest `26.x` string available in your region.
 
 ```bash
-export COMPARTMENT_ID="ocid1.compartment.oc1..aaaaaaaaqcvjcdgexiyboeveqjc3izpzgk52mjmcf5qcelz2fvdbmhdg6b6q"   # same as compartment_id variable
+export COMPARTMENT_ID="ocid1.compartment.oc1..aaaaaaaaEXAMPLE_REPLACE_WITH_YOUR_COMPARTMENT_OCID"   # same as compartment_id variable
 export OCI_REGION="ap-tokyo-1"                                   # same as region variable
 export SUPPRESS_LABEL_WARNING=True                               # optional
 
@@ -148,9 +148,21 @@ Use the **highest** `26.x` string from step 2 for **`db_home_version`**.
 
 ---
 
-## Step 1 — Build zip files (on laptop, once)
+## Step 1 — Get stack zip files (download preferred)
 
-Clone or pull latest repo, then:
+**Preferred — download from GitHub Releases** (no local Terraform / packaging):
+
+1. Open **[Releases](https://github.com/geeksnap/oracle-sql-firewall-demo/releases)** → pick a release that lists both assets (or see [DOWNLOAD.md](DOWNLOAD.md)).
+2. Download:
+
+| Zip | Order |
+|-----|-------|
+| `sqlfw-db-stack.zip` | Upload **first** |
+| `sqlfw-compute-stack.zip` | Upload **second** |
+
+Each zip has `.tf` files + `schema.yaml` at the **root** (no `.terraform/`, no real `terraform.tfvars`). Schema drives the Console Variables wizard.
+
+**Alternate — build from a clone** (if no Release assets yet):
 
 ```bash
 cd terraform
@@ -159,14 +171,7 @@ chmod +x package-stacks.sh   # first time only
 # or: bash package-stacks.sh
 ```
 
-Produces (gitignored — do not commit):
-
-| Zip | Order |
-|-----|-------|
-| `terraform/sqlfw-db-stack.zip` | Upload **first** |
-| `terraform/sqlfw-compute-stack.zip` | Upload **second** |
-
-Each zip has `.tf` files at the **root** (no `.terraform/`, no `terraform.tfvars`).
+Produces gitignored zips in `terraform/` (`sqlfw-*-stack.zip`). Maintainers can also run **Actions → Package OCI Resource Manager stacks**.
 
 ---
 
@@ -185,23 +190,23 @@ Each zip has `.tf` files at the **root** (no `.terraform/`, no `terraform.tfvars
 
 ```hcl
 region          = "ap-singapore-1"              # MUST match Console region (use same value in DB + compute stacks)
-compartment_id  = "ocid1.compartment.oc1..aaaaaaaaqcvjcdgexiyboeveqjc3izpzgk52mjmcf5qcelz2fvdbmhdg6b6q"  # replace with your compartment OCID
+compartment_id  = "ocid1.compartment.oc1..aaaaaaaaEXAMPLE_REPLACE_WITH_YOUR_COMPARTMENT_OCID"
 ssh_public_key  = "ssh-ed25519 AAAA... sqlfw"   # full single-line .pub
 db_home_version = "26.0.0.0.0"                  # 26.x — use latest from "oci db version list" (see Check 26ai DB home version)
 allow_ssh_cidr  = "YOUR.PUBLIC.IP/32"   # or "0.0.0.0/0" for open demos — Apply required after change
 pdb_name        = "SQLFWPDB1"
 project_prefix  = "sqlfw-demo"
-# Do NOT set sys_password to pdb_name. Defaults (no # — safe in RM Variables UI):
-# sys_password    = "DbAdm12_Ab-cdXy"   (no 'sys' or 'Oracle' in password)
-# app_db_password = "AppDb34_Cd-efGh"
+# Set your own passwords in the Variables UI (schema marks them sensitive):
+# sys_password    = "CHANGE_ME_SysAdm12_Xy"   (no 'sys' or 'Oracle' in password)
+# app_db_password = "CHANGE_ME_AppDb34_Gh"
 ```
 
-**Passwords:** Hardcoded in the zip. **Delete** `sys_password` / `app_db_password` from Variables to use defaults:
+**Passwords:** Enter in Resource Manager **Variables** (or leave blank to use demo-only Terraform defaults in `variables.tf` for local workshops). **Do not** bake real passwords into the zip. Do **not** set `sys_password` to `pdb_name`.
 
-| Variable | Default |
-|----------|---------|
-| `sys_password` | `"DbAdm12_Ab-cdXy"` |
-| `app_db_password` | `"AppDb34_Cd-efGh"` |
+| Variable | Guidance |
+|----------|----------|
+| `sys_password` | Your OCI-compliant SYS password (`CHANGE_ME_...`) |
+| `app_db_password` | Your app DB password (`CHANGE_ME_...`) |
 
 OCI rejects passwords containing **`Oracle`** or **`sys`** (SYS admin password).
 
@@ -355,7 +360,7 @@ ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@$COMPUTE_IP \
 
 ```hcl
 region          = "ap-tokyo-1"                  # MUST match DB stack and Console region
-compartment_id  = "ocid1.compartment.oc1..aaaaaaaaqcvjcdgexiyboeveqjc3izpzgk52mjmcf5qcelz2fvdbmhdg6b6q"  # replace with your compartment OCID
+compartment_id  = "ocid1.compartment.oc1..aaaaaaaaEXAMPLE_REPLACE_WITH_YOUR_COMPARTMENT_OCID"
 ssh_public_key  = "ssh-ed25519 AAAA... sqlfw"   # same key as DB stack
 project_prefix  = "sqlfw-demo"                  # same as DB stack
 db_stack_id     = "ocid1.ormstack.oc1....."    # REQUIRED — DB stack OCID from Step 2
@@ -785,7 +790,7 @@ Destroy **compute stack** first, then **DB stack** (each stack → **Destroy** j
 | `Permission denied` on `/var/log/sqlfw-install.log` | Use `sudo bash -c '.../sqlfw-install-apps.sh >> /var/log/sqlfw-install.log 2>&1'` — not `sudo cmd >> log` |
 | Compute **plan** fails on remote state | Set **`db_stack_id`** to DB stack OCID (`ocid1.ormstack...`); DB stack Apply must **Succeeded** first |
 | `db_home_version` invalid / 400 InvalidParameter | Re-run [Check 26ai DB home version](#check-26ai-db-home-version-before-db-stack): list all versions first, then filter with `jq` for `26.x`. Empty = wrong region, unset `COMPARTMENT_ID`, or 26ai not in region |
-| Password error | Delete password vars; defaults: `"DbAdm12_Ab-cdXy"` / `"AppDb34_Cd-efGh"` (no `sys` / `Oracle`) |
+| Password error | Set compliant `sys_password` / `app_db_password` in Variables (no `sys` / `Oracle` substrings); or clear vars to use demo-only Terraform defaults |
 | Object Storage / subnet error | Upload latest zip (service gateway + security list egress); re-Apply DB stack |
 | Git clone fails on VM | Public repo URL without token, or PAT in `github_repo_url`; update `/root/sqlfw-bootstrap.env` and re-run install |
 | `MODULE_NOT_FOUND` for `oci-bootstrap-database.mjs` | Push `scripts/oci-bootstrap-database.mjs` to GitHub `main`; re-run install script |

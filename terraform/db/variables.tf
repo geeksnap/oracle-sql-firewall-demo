@@ -84,14 +84,14 @@ variable "ssh_public_key" {
 }
 
 variable "sys_password" {
-  description = "SYS / SYSTEM password. Cannot contain 'Oracle' or 'sys'. OCI: 9+ chars, 2 upper, 2 lower, 2 digit, 2 of _ - #."
+  description = "SYS / SYSTEM password. Cannot contain 'Oracle' or 'sys'. OCI: 9+ chars, 2 upper, 2 lower, 2 digit, 2 of _ - #. Default is demo-only for local workshops — set your own in Resource Manager Variables for shared/public tenancies."
   type        = string
   sensitive   = true
   default     = "DbAdm12_Ab-cdXy"
 }
 
 variable "app_db_password" {
-  description = "Password for AEGIS_APP and luminaforge DB users. Cannot contain 'Oracle'."
+  description = "Password for AEGIS_APP and luminaforge DB users. Cannot contain 'Oracle'. Default is demo-only for local workshops — set your own in Resource Manager Variables for shared/public tenancies."
   type        = string
   sensitive   = true
   default     = "AppDb34_Cd-efGh"
