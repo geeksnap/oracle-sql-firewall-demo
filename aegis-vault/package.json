@@ -9,7 +9,10 @@
     "prebuild": "node scripts/bump-build.mjs",
     "build": "next build",
     "start": "NODE_ENV=production tsx server.ts",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "tsx --test tests/*.test.ts",
+    "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@react-three/drei": "^10.0.6",
@@ -27,6 +30,7 @@
     "three": "^0.175.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.0",
     "@tailwindcss/postcss": "^4.1.5",
     "@types/node": "^22.15.3",
     "@types/react": "^19.1.2",

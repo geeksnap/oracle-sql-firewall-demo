@@ -38,6 +38,14 @@ Stunning user-facing premium wealth + investment marketplace app (B2C/Enterprise
 - **Navbar tab switch:** Each route change refetches `GET /api/session`. With `ENFORCE_ALL`, mismatched session context logs Context violations even though the SQL is benign.
 - **Initialize default demo policy:** LuminaForge **must be running** (default `http://localhost:3001`, override `LUMINAFORGE_BASE_URL` on Aegis) for HTTP training (`/api/training/benign-bootstrap`). Init **leaves capture ON**; presenter finishes with **Stop SQL capture** → **Generate Allow List** (see Demo Control modal).
 
+### 6.2 Demo Seed Initialization
+- Aegis Vault's guarded **Initialize Demo Seed Data** action atomically replaces only LuminaForge `USERS`, `PORTFOLIO`, `TRANSACTIONS`, and `LUXURY_ITEMS` with the canonical repository manifest.
+- Stable seeded identities are preserved, including `demo_user` as `id = 1`; deletes run child-to-parent and inserts parent-to-child so foreign keys remain valid.
+- The source dataset anchor is `2026-06-01T00:00:00.000Z`. Each reset captures one Oracle database-clock target anchor in UTC and rebases every non-null seeded temporal value from that anchor pair.
+- Rebasing preserves historical/future direction, exact day/time durations, calendar-month and end-of-month meaning, nulls, temporal types/precision, and time-zone instants.
+- Any load or validation error rolls back all four tables. Repeating a reset with the same injected test anchor produces the same seeded rows.
+- Seed initialization leaves SQL Firewall state, policy/capture/allow-list state, and violation logs unchanged.
+
 ### 7. Tech Stack
 Same as Aegis Vault + oracledb connection to luminaforge user
 

@@ -12,9 +12,16 @@ const PRIMARY_NAV: { id: "dashboard"; label: string }[] = [
 interface SidebarProps {
   active: NavSection;
   onSelect: (section: NavSection) => void;
+  onInitializeDemoSeed: () => void;
+  seedBusy?: boolean;
 }
 
-export function Sidebar({ active, onSelect }: SidebarProps) {
+export function Sidebar({
+  active,
+  onSelect,
+  onInitializeDemoSeed,
+  seedBusy = false,
+}: SidebarProps) {
   return (
     <aside className="glass-panel flex h-full flex-col rounded-xl p-4">
       <p className="mb-4 text-[10px] uppercase tracking-[0.25em] text-slate-500">
@@ -37,7 +44,7 @@ export function Sidebar({ active, onSelect }: SidebarProps) {
           </button>
         ))}
 
-        <div className="mt-auto pt-4">
+        <div className="mt-auto flex flex-col gap-2 pt-4">
           <button
             type="button"
             onClick={() => onSelect("break-glass-control")}
@@ -49,6 +56,14 @@ export function Sidebar({ active, onSelect }: SidebarProps) {
             )}
           >
             Break-Glass Control
+          </button>
+          <button
+            type="button"
+            onClick={onInitializeDemoSeed}
+            disabled={seedBusy}
+            className="w-full rounded-lg border border-[#ff2d55]/50 bg-[#991b1b]/20 px-4 py-3 text-left text-sm font-semibold text-[#fecaca] transition-all hover:border-[#ff2d55]/75 hover:bg-[#991b1b]/35 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {seedBusy ? "Initializing Demo Seed Data…" : "Initialize Demo Seed Data"}
           </button>
         </div>
       </nav>

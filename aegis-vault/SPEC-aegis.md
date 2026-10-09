@@ -26,6 +26,13 @@ Futuristic cyber-defense command center that monitors both itself (AEGIS_APP) an
 - **Output:** scrollable ~15-row console showing executed SQL and results
 - Requires `Oracle_DB_Demo_Control_Grant.sql` run as SYS (`SYS.aegis_demo_control` package)
 
+### 3.2 Initialize Demo Seed Data
+- The sidebar renders **Initialize Demo Seed Data** directly below **Break-Glass Control**. It is a destructive action, not a navigation destination.
+- The action requires a current server-verifiable break-glass grant and an exact typed confirmation: `RESET LUMINAFORGE DEMO DATA`.
+- It is fail-closed unless demo reset is explicitly enabled and the fixed target is `LUMINAFORGE`; callers cannot provide SQL, schemas, tables, or a clock value.
+- Success displays the one Oracle UTC target anchor and row counts for `USERS`, `PORTFOLIO`, `TRANSACTIONS`, and `LUXURY_ITEMS`. Failure displays sanitized rollback status.
+- The reset does not change Aegis operational state, synthetic break-glass events, SQL Firewall configuration, captures, allow-lists, enforcement, or violation logs.
+
 ### 4. Multi-App Monitoring (Key Feature)
 - Monitored Apps Panel shows AEGIS_APP and luminaforge **SQL Firewall control status** (allow-list / block), not generic ONLINE
 - **Latest Threats** (Dashboard): occupies ~**half** of the center column below metrics/globe, stretching to the bottom of the **Command Nav** row on large screens; violations table (~2/3 of that block) with **Full SQL** below (~1/3). Shows **all** violations in the current ledger (up to **200** per status update, scroll inside panel). Table columns: Time, Source App, Type, Action (no **User** column). Click a row to show full `sql_text`. **No deduplication** of repeat firewall log rows in the ledger.
