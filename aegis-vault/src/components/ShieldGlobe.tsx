@@ -101,7 +101,7 @@ export function ShieldGlobe({
   return (
     <div
       className={cn(
-        "glass-panel relative h-[360px] overflow-hidden rounded-xl",
+        "glass-panel relative mx-auto aspect-[12/9] w-full max-w-[min(100%,480px)] overflow-hidden rounded-xl",
         visual === "flash" && "alert-flash border-[#ff2d55]",
         visual === "warning" && "alert-warning-pulse",
       )}

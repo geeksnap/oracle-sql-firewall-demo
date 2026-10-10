@@ -49,10 +49,10 @@ export function Sidebar({
             type="button"
             onClick={() => onSelect("break-glass-control")}
             className={cn(
-              "w-full rounded-lg px-4 py-3 text-left text-sm transition-all",
+              "w-full rounded-lg px-4 py-3 text-left text-sm font-semibold transition-all",
               active === "break-glass-control"
                 ? "border border-[#991b1b]/60 bg-[#7f1d1d]/25 text-[#fecaca] shadow-[0_0_16px_rgba(127,29,29,0.35)]"
-                : "border border-[#7f1d1d]/35 bg-[#7f1d1d]/8 text-[#fca5a5] hover:border-[#991b1b]/50 hover:bg-[#7f1d1d]/15 hover:text-[#fecaca]",
+                : "border border-[#ff2d55]/50 bg-[#991b1b]/20 text-[#fecaca] hover:border-[#ff2d55]/75 hover:bg-[#991b1b]/35",
             )}
           >
             Break-Glass Control
@@ -61,7 +61,7 @@ export function Sidebar({
             type="button"
             onClick={onInitializeDemoSeed}
             disabled={seedBusy}
-            className="w-full rounded-lg border border-[#ff2d55]/50 bg-[#991b1b]/20 px-4 py-3 text-left text-sm font-semibold text-[#fecaca] transition-all hover:border-[#ff2d55]/75 hover:bg-[#991b1b]/35 disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full rounded-lg border border-[#7f1d1d]/35 bg-[#7f1d1d]/8 px-4 py-3 text-left text-sm text-[#fca5a5] transition-all hover:border-[#991b1b]/50 hover:bg-[#7f1d1d]/15 hover:text-[#fecaca] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {seedBusy ? "Initializing Demo Seed Data…" : "Initialize Demo Seed Data"}
           </button>

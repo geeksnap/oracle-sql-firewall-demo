@@ -84,25 +84,59 @@ export function hasSameOrigin(request: NextRequest): boolean {
   }
 }
 
+/**
+ * Secure cookies are dropped on HTTP demo origins (e.g. http://host:3000)
+ * even when NODE_ENV=production. Follow the request scheme unless overridden.
+ */
+export function cookieSecure(
+  request?: Request,
+  env: DemoSeedEnvironment = process.env,
+): boolean {
+  const explicit = env.AEGIS_COOKIE_SECURE;
+  if (explicit === "true") return true;
+  if (explicit === "false") return false;
+  const forwarded = request?.headers
+    .get("x-forwarded-proto")
+    ?.split(",")[0]
+    ?.trim()
+    .toLowerCase();
+  if (forwarded) return forwarded === "https";
+  try {
+    if (request?.url) return new URL(request.url).protocol === "https:";
+  } catch {
+    /* ignore malformed URLs */
+  }
+  return false;
+}
+
+function grantCookieOptions(request?: Request, env?: DemoSeedEnvironment) {
+  return {
+    httpOnly: true,
+    sameSite: "strict" as const,
+    secure: cookieSecure(request, env),
+    path: "/",
+  };
+}
+
 export function setBreakGlassGrantCookie(
   response: NextResponse,
   token: string,
+  request?: Request,
+  env?: DemoSeedEnvironment,
 ): void {
   response.cookies.set(BREAK_GLASS_COOKIE, token, {
-    httpOnly: true,
-    sameSite: "strict",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
+    ...grantCookieOptions(request, env),
     maxAge: GRANT_TTL_SECONDS,
   });
 }
 
-export function clearBreakGlassGrantCookie(response: NextResponse): void {
+export function clearBreakGlassGrantCookie(
+  response: NextResponse,
+  request?: Request,
+  env?: DemoSeedEnvironment,
+): void {
   response.cookies.set(BREAK_GLASS_COOKIE, "", {
-    httpOnly: true,
-    sameSite: "strict",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
+    ...grantCookieOptions(request, env),
     maxAge: 0,
   });
 }

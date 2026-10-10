@@ -33,13 +33,19 @@ export async function POST(request: NextRequest) {
   if (action === "initialize-demo-seed-data") {
     if (confirmation !== "RESET LUMINAFORGE DEMO DATA") {
       return NextResponse.json(
-        { error: "Exact demo seed confirmation is required" },
+        {
+          error: "Exact demo seed confirmation is required",
+          mutationAttempted: false,
+        },
         { status: 400 },
       );
     }
     if (scope !== "luminaforge" || !hasSameOrigin(request)) {
       return NextResponse.json(
-        { error: "Demo seed initialization requires an authorized same-origin request" },
+        {
+          error: "Demo seed initialization requires an authorized same-origin request",
+          mutationAttempted: false,
+        },
         { status: 403 },
       );
     }
@@ -49,13 +55,19 @@ export async function POST(request: NextRequest) {
       );
       if (!grant) {
         return NextResponse.json(
-          { error: "Break-glass authorization is required" },
+          {
+            error: "Break-glass authorization is required",
+            mutationAttempted: false,
+          },
           { status: 401 },
         );
       }
     } catch {
       return NextResponse.json(
-        { error: "Break-glass authorization is not configured" },
+        {
+          error: "Break-glass authorization is not configured",
+          mutationAttempted: false,
+        },
         { status: 503 },
       );
     }
@@ -87,7 +99,7 @@ export async function POST(request: NextRequest) {
 
   const response = NextResponse.json(result);
   if (action === "initialize-demo-seed-data") {
-    clearBreakGlassGrantCookie(response);
+    clearBreakGlassGrantCookie(response, request);
   }
   return response;
 }

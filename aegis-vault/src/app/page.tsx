@@ -93,16 +93,19 @@ export default function HomePage() {
     setBreakGlassOpen(true);
   }, [breakGlassGrant]);
 
-  const handleBreakGlassSuccess = useCallback(() => {
-    setBreakGlassGrant(true);
-    setBreakGlassOpen(false);
-    if (breakGlassIntent === "control") {
-      setSection("break-glass-control");
-    } else if (breakGlassIntent === "seed") {
-      setSeedModalOpen(true);
-    }
-    setBreakGlassIntent(null);
-  }, [breakGlassIntent]);
+  const handleBreakGlassSuccess = useCallback(
+    (result: { seedGrantIssued: boolean }) => {
+      setBreakGlassGrant(result.seedGrantIssued);
+      setBreakGlassOpen(false);
+      if (breakGlassIntent === "control") {
+        setSection("break-glass-control");
+      } else if (breakGlassIntent === "seed" && result.seedGrantIssued) {
+        setSeedModalOpen(true);
+      }
+      setBreakGlassIntent(null);
+    },
+    [breakGlassIntent],
+  );
 
   useEffect(() => {
     void fetch("/api/build")
@@ -283,7 +286,7 @@ export default function HomePage() {
   return (
     <main className="flex h-[100dvh] items-center justify-center overflow-hidden bg-[#0a0a0f] p-4 lg:p-6">
       <div
-        className="flex aspect-square w-[min(100%,calc(100dvh-2rem))] min-h-0 min-w-0 flex-col gap-4 overflow-hidden lg:w-[min(100%,calc(100dvh-3rem))]"
+        className="flex aspect-[12/9] w-[min(100%,calc((100dvh-2rem)*12/9))] min-h-0 min-w-0 flex-col gap-4 overflow-hidden lg:w-[min(100%,calc((100dvh-3rem)*12/9))]"
       >
         <div className="shrink-0">
           <Header
@@ -365,6 +368,7 @@ export default function HomePage() {
       </div>
       <BreakGlassModal
         open={breakGlassOpen}
+        requireSeedGrant={breakGlassIntent === "seed"}
         onClose={() => {
           setBreakGlassOpen(false);
           setBreakGlassIntent(null);

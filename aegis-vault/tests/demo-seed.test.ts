@@ -4,13 +4,20 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   BREAK_GLASS_COOKIE,
   clearBreakGlassGrantCookie,
+  cookieSecure,
   issueBreakGlassGrant,
+  setBreakGlassGrantCookie,
   verifyBreakGlassGrant,
 } from "../lib/break-glass-grant";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { getDemoSeedConfig } from "../lib/demo-seed-config";
 import { executeDemoSeedInitialization } from "../lib/db/demo-seed";
 import { isValidDemoRequest } from "../lib/db/demo-control";
 import { POST as executeRoute } from "../src/app/api/demo-control/execute/route";
+import { POST as loginRoute } from "../src/app/api/break-glass/login/route";
 
 const demoEnv = {
   DEMO_SEED_RESET_ENABLED: "true",
@@ -75,6 +82,29 @@ test("grant clearing expires the HttpOnly cookie", () => {
   assert.match(cookie, /SameSite=strict/i);
 });
 
+test("grant cookies follow request scheme instead of NODE_ENV", () => {
+  const httpReq = new NextRequest("http://161.33.154.45:3000/api/break-glass/login");
+  const httpsReq = new NextRequest("https://aegis.test/api/break-glass/login");
+  const forwarded = new NextRequest("http://aegis.test/api/break-glass/login", {
+    headers: { "x-forwarded-proto": "https" },
+  });
+  assert.equal(cookieSecure(httpReq), false);
+  assert.equal(cookieSecure(httpsReq), true);
+  assert.equal(cookieSecure(forwarded), true);
+  assert.equal(cookieSecure(httpReq, { AEGIS_COOKIE_SECURE: "true" }), true);
+  assert.equal(cookieSecure(httpsReq, { AEGIS_COOKIE_SECURE: "false" }), false);
+
+  const httpResponse = NextResponse.json({ ok: true });
+  setBreakGlassGrantCookie(httpResponse, "token", httpReq);
+  const httpCookie = httpResponse.headers.get("set-cookie") ?? "";
+  assert.doesNotMatch(httpCookie, /Secure/i);
+
+  const httpsResponse = NextResponse.json({ ok: true });
+  setBreakGlassGrantCookie(httpsResponse, "token", httpsReq);
+  const httpsCookie = httpsResponse.headers.get("set-cookie") ?? "";
+  assert.match(httpsCookie, /Secure/i);
+});
+
 test("route rejects unknown and unauthorized actions before database access", async () => {
   assert.equal(
     isValidDemoRequest("luminaforge", "initialize-demo-seed-data"),
@@ -109,7 +139,18 @@ test("route rejects unknown and unauthorized actions before database access", as
       }),
     },
   );
-  assert.equal((await executeRoute(unauthorized)).status, 401);
+  const unauthorizedResponse = await executeRoute(unauthorized);
+  assert.equal(unauthorizedResponse.status, 401);
+  const unauthorizedBody = (await unauthorizedResponse.json()) as {
+    error?: string;
+    mutationAttempted?: boolean;
+  };
+  assert.equal(unauthorizedBody.error, "Break-glass authorization is required");
+  assert.equal(unauthorizedBody.mutationAttempted, false);
+  assert.doesNotMatch(
+    JSON.stringify(unauthorizedBody),
+    /Rollback could not be confirmed/i,
+  );
 
   const crossOrigin = new NextRequest(
     "http://aegis.test/api/demo-control/execute",
@@ -128,6 +169,46 @@ test("route rejects unknown and unauthorized actions before database access", as
     },
   );
   assert.equal((await executeRoute(crossOrigin)).status, 403);
+
+  const prevSecret = process.env.BREAK_GLASS_GRANT_SECRET;
+  process.env.BREAK_GLASS_GRANT_SECRET = "short";
+  try {
+    const misconfigured = new NextRequest(
+      "http://aegis.test/api/demo-control/execute",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          host: "aegis.test",
+          origin: "http://aegis.test",
+          cookie: `${BREAK_GLASS_COOKIE}=abc.def`,
+        },
+        body: JSON.stringify({
+          scope: "luminaforge",
+          action: "initialize-demo-seed-data",
+          confirmation: "RESET LUMINAFORGE DEMO DATA",
+        }),
+      },
+    );
+    const misconfiguredResponse = await executeRoute(misconfigured);
+    assert.equal(misconfiguredResponse.status, 503);
+    const misconfiguredBody = (await misconfiguredResponse.json()) as {
+      error?: string;
+      mutationAttempted?: boolean;
+    };
+    assert.equal(
+      misconfiguredBody.error,
+      "Break-glass authorization is not configured",
+    );
+    assert.equal(misconfiguredBody.mutationAttempted, false);
+    assert.doesNotMatch(
+      JSON.stringify(misconfiguredBody),
+      /BREAK_GLASS_GRANT_SECRET/,
+    );
+  } finally {
+    if (prevSecret === undefined) delete process.env.BREAK_GLASS_GRANT_SECRET;
+    else process.env.BREAK_GLASS_GRANT_SECRET = prevSecret;
+  }
 });
 
 test("seed service commits once and explicitly closes on success", async () => {
@@ -222,4 +303,58 @@ test("lock contention is reported without raw Oracle details", async () => {
     error: "Demo seed initialization is already running",
     rolledBack: true,
   });
+});
+
+test("login without a configured secret does not leak env names", async () => {
+  const prevEnabled = process.env.DEMO_SEED_RESET_ENABLED;
+  const prevSecret = process.env.BREAK_GLASS_GRANT_SECRET;
+  process.env.DEMO_SEED_RESET_ENABLED = "true";
+  process.env.BREAK_GLASS_GRANT_SECRET = "short";
+  try {
+    const response = await loginRoute(
+      new Request("http://aegis.test/api/break-glass/login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ username: "ops-lead", password: "demo" }),
+      }),
+    );
+    assert.equal(response.status, 200);
+    const body = (await response.json()) as {
+      seedGrantIssued?: boolean;
+      error?: string;
+    };
+    assert.equal(body.seedGrantIssued, false);
+    assert.doesNotMatch(JSON.stringify(body), /BREAK_GLASS_GRANT_SECRET/);
+  } finally {
+    if (prevEnabled === undefined) delete process.env.DEMO_SEED_RESET_ENABLED;
+    else process.env.DEMO_SEED_RESET_ENABLED = prevEnabled;
+    if (prevSecret === undefined) delete process.env.BREAK_GLASS_GRANT_SECRET;
+    else process.env.BREAK_GLASS_GRANT_SECRET = prevSecret;
+  }
+});
+
+test("ensure-demo-seed-env.sh upserts keys without printing the secret", () => {
+  const dir = mkdtempSync(join(tmpdir(), "aegis-seed-env-"));
+  const envPath = join(dir, ".env");
+  writeFileSync(
+    envPath,
+    "DB_USER=AEGIS_APP\nDEMO_SEED_RESET_ENABLED=false\nBREAK_GLASS_GRANT_SECRET=replace-with-a-random-secret-at-deploy-time\n",
+  );
+  const script = join(import.meta.dirname, "../../scripts/ensure-demo-seed-env.sh");
+  const stdout = execFileSync("bash", [script, envPath], { encoding: "utf8" });
+  assert.match(stdout, /secret not printed/i);
+  assert.doesNotMatch(stdout, /BREAK_GLASS_GRANT_SECRET=/);
+  const first = readFileSync(envPath, "utf8");
+  assert.match(first, /^DEMO_SEED_RESET_ENABLED=true$/m);
+  assert.match(first, /^DEMO_ENVIRONMENT=demo$/m);
+  assert.match(first, /^DEMO_SEED_SCHEMA=LUMINAFORGE$/m);
+  const secret = first.match(/^BREAK_GLASS_GRANT_SECRET=(.+)$/m)?.[1] ?? "";
+  assert.ok(secret.length >= 32);
+  assert.notEqual(secret, "replace-with-a-random-secret-at-deploy-time");
+  execFileSync("bash", [script, envPath], { encoding: "utf8" });
+  const second = readFileSync(envPath, "utf8");
+  assert.equal(
+    second.match(/^BREAK_GLASS_GRANT_SECRET=(.+)$/m)?.[1],
+    secret,
+  );
 });

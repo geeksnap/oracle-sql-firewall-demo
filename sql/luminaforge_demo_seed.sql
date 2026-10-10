@@ -31,7 +31,7 @@ AS
     p_last_day_of_month IN NUMBER
   ) RETURN TIMESTAMP
   IS
-    l_anchor TIMESTAMP := CAST(SYS_EXTRACT_UTC(p_target_anchor) AS TIMESTAMP);
+    l_anchor TIMESTAMP := SYS_EXTRACT_UTC(p_target_anchor);
     l_midnight TIMESTAMP;
     l_clock INTERVAL DAY TO SECOND;
     l_month_date DATE;
