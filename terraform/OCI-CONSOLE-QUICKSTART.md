@@ -11,7 +11,7 @@ Browser → Compute VM (:3000 Aegis, :3001 LuminaForge) → Base DB 26ai (PDB)
          └── private VCN (created by DB stack — do not pre-create)
 ```
 
-Full reference: [`README.md`](../README.md) · Start/stop apps + DB: [`README.md`](../README.md#startstop) · Local CLI: [`README.md#phase-0--oci-api-access-one-time`](README.md) · Zip downloads: [`DOWNLOAD.md`](DOWNLOAD.md)
+New tenancy or another compartment (login, SSH key, numbered steps): [`OCI-QUICK-DEPLOYMENT.md`](OCI-QUICK-DEPLOYMENT.md). Full reference: [`README.md`](../README.md) · Start/stop apps + DB: [`README.md`](../README.md#startstop) · Local CLI: [`README.md#phase-0--oci-api-access-one-time`](README.md) · Zip downloads: [`DOWNLOAD.md`](DOWNLOAD.md)
 
 ### Console path at a glance
 
