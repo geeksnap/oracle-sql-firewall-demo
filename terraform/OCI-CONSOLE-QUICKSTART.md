@@ -18,7 +18,7 @@ Full reference: [`README.md`](../README.md) · Start/stop apps + DB: [`README.md
 | Order | What | Where |
 |------:|------|--------|
 | 0 | Prep: region, compartment OCID, SSH **public** key, `db_home_version` (26.x), your `/32` | Console + laptop (no Terraform CLI) |
-| 1 | Download **`sqlfw-db-stack.zip`** then **`sqlfw-compute-stack.zip`** | [Release `orm-stacks-20261009-2`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261009-2) |
+| 1 | Download **`sqlfw-db-stack.zip`** then **`sqlfw-compute-stack.zip`** | [Release `orm-stacks-20261010`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261010) |
 | 2 | **Create stack** → upload DB zip → fill schema Variables → **Plan → Apply** (~60–90 min) | Resource Manager |
 | 2b | Confirm public GitHub URL (default) or PAT for private | Before compute Apply |
 | 2c | Configure DB sqlnet for Thin Mode (Bastion **or** after compute via ProxyJump) | DB host as `opc` |
@@ -168,13 +168,13 @@ Use the **highest** `26.x` string for **`db_home_version`**. Empty filter with a
 
 **Preferred — download published Release assets** (no local Terraform / packaging):
 
-1. Open release **[`orm-stacks-20261009-2`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261009-2)** (or [Latest](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/latest) when it points at ORM stack assets).
+1. Open release **[`orm-stacks-20261010`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261010)** (or [Latest](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/latest) when it points at ORM stack assets).
 2. Download both zips (also listed in [DOWNLOAD.md](DOWNLOAD.md)):
 
 | Zip | Order | Direct URL |
 |-----|-------|------------|
-| [`sqlfw-db-stack.zip`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/download/orm-stacks-20261009-2/sqlfw-db-stack.zip) | Upload **first** | DB + VCN |
-| [`sqlfw-compute-stack.zip`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/download/orm-stacks-20261009-2/sqlfw-compute-stack.zip) | Upload **second** | Compute + WAF/LB |
+| [`sqlfw-db-stack.zip`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/download/orm-stacks-20261010/sqlfw-db-stack.zip) | Upload **first** | DB + VCN |
+| [`sqlfw-compute-stack.zip`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/download/orm-stacks-20261010/sqlfw-compute-stack.zip) | Upload **second** | Compute + WAF/LB |
 
 Each zip has `.tf` files + `schema.yaml` at the **root** (no `.terraform/`, no real `terraform.tfvars`, no secrets). Schema drives the Console **Configure variables** wizard (grouped Required / Passwords / Optional).
 

@@ -64,7 +64,7 @@ No `backend` block is required — Resource Manager manages state for each stack
 
 ### RM-1 — Obtain stack zip files
 
-**Preferred:** download `sqlfw-db-stack.zip` and `sqlfw-compute-stack.zip` from release **[`orm-stacks-20261009-2`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261009-2)** — see **[DOWNLOAD.md](DOWNLOAD.md)** for direct URLs.
+**Preferred:** download `sqlfw-db-stack.zip` and `sqlfw-compute-stack.zip` from release **[`orm-stacks-20261010`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261010)** — see **[DOWNLOAD.md](DOWNLOAD.md)** for direct URLs.
 
 **Alternate** — build from a clone:
 
