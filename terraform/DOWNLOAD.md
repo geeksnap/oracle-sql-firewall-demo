@@ -19,6 +19,8 @@ Published stack zips for tag **[`orm-stacks-20261010`](https://github.com/geeksn
 1. Download both zips from the release above (or open [Releases](https://github.com/geeksnap/oracle-sql-firewall-demo/releases) / [Latest](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/latest) when it lists the same assets).
 2. Follow **[OCI-CONSOLE-QUICKSTART.md](OCI-CONSOLE-QUICKSTART.md)** starting at **Step 2** (DB stack).
 
+New tenancy or another compartment (login, SSH key, numbered Console steps): **[OCI-QUICK-DEPLOYMENT.md](OCI-QUICK-DEPLOYMENT.md)**.
+
 If no release assets exist yet, use the alternate build below, or run **Actions → Package OCI Resource Manager stacks → Run workflow**, then download the `sqlfw-orm-stacks` artifact.
 
 ## Alternate — build from a clone
