@@ -7,7 +7,7 @@ Fixed viewport frame for Aegis Vault — stable shell dimensions from startup wi
 
 ### Requirement: Aegis Vault uses a fixed viewport shell from startup
 
-The Aegis Vault application shell SHALL establish a fixed viewport frame on initial load at the large (`lg`) breakpoint. The outer layout SHALL NOT grow in height or width as violation rows or demo-control output increase. Internal scrolling SHALL occur only inside designated panel regions (violation tables, Full SQL, demo output console). The application frame SHALL maintain a **1:1 aspect ratio** (width equals height) from first paint and SHALL remain square when switching between Dashboard and Break-Glass Control.
+The Aegis Vault application shell SHALL establish a fixed viewport frame on initial load at the large (`lg`) breakpoint. The outer layout SHALL NOT grow in height or width as violation rows or demo-control output increase. Internal scrolling SHALL occur only inside designated panel regions (violation tables, Full SQL, demo output console). The application frame SHALL maintain a landscape **12:9** aspect ratio (width : height = 12 : 9, i.e. 4:3) from first paint and SHALL remain that ratio when switching between Dashboard and Break-Glass Control.
 
 #### Scenario: Page height stable after many violations
 
@@ -27,24 +27,24 @@ The Aegis Vault application shell SHALL establish a fixed viewport frame on init
 - **THEN** each panel SHALL fit within the fixed right-rail column height
 - **AND** Live Violations SHALL scroll internally when content exceeds its allocated height
 
-### Requirement: Application frame is square and centered
+### Requirement: Application frame is landscape 12:9 and centered
 
-At the large (`lg`) breakpoint, the Aegis Vault shell SHALL render as a centered square whose width and height are equal. The square SHALL be sized to the largest dimension that fits within the browser viewport (accounting for page padding), i.e. `min(available viewport width, available viewport height)`. The area outside the square SHALL use the application background color without additional page scroll.
+At the large (`lg`) breakpoint, the Aegis Vault shell SHALL render as a centered landscape rectangle whose width-to-height ratio is **12:9** (4:3, not 16:9). The frame SHALL be sized to the largest 12:9 rectangle that fits within the browser viewport (accounting for page padding). The area outside the frame SHALL use the application background color without additional page scroll.
 
-#### Scenario: Square frame on wide monitor
+#### Scenario: Landscape 12:9 frame on wide monitor
 
 - **WHEN** the presenter opens Aegis Vault on a 1920×1080 display at the `lg` breakpoint
-- **THEN** the application frame width SHALL equal its height
+- **THEN** the application frame width-to-height ratio SHALL be 12:9
 - **AND** the frame SHALL be centered in the browser window
-- **AND** the frame SHALL NOT stretch to full 1920px width as a wide rectangle
+- **AND** the frame SHALL NOT be square (1:1) and SHALL NOT be 16:9
 
-#### Scenario: Square frame on tall narrow viewport
+#### Scenario: Frame on tall narrow viewport
 
 - **WHEN** the viewport is taller than it is wide (e.g. portrait or narrow window)
-- **THEN** the application frame width SHALL equal its height
+- **THEN** the application frame SHALL keep a 12:9 width-to-height ratio
 - **AND** the frame SHALL fit entirely within the viewport without body scroll
 
 #### Scenario: Aspect ratio unchanged after nav toggle
 
 - **WHEN** the presenter toggles between Dashboard and Break-Glass Control
-- **THEN** the outer frame SHALL remain 1:1 with the same pixel width and height as before the toggle
+- **THEN** the outer frame SHALL remain 12:9 with the same pixel width and height as before the toggle
