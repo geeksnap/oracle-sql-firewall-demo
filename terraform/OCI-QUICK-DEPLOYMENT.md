@@ -101,7 +101,7 @@ Allow group YOUR_GROUP to manage orm-jobs in compartment YOUR_COMPARTMENT
 
 Some tenancies use `manage stacks` and `manage jobs` instead of `orm-stacks` / `orm-jobs`.
 
-Optional (only if you use a Bastion in step 12): permission to manage bastions in that compartment.
+Bastion IAM is **not** required. Thin Mode sqlnet is applied from compute cloud-init (step 12).
 
 ---
 
@@ -212,41 +212,47 @@ Saving a variable later does nothing until you **Plan → Apply** again.
 On the DB stack:
 
 1. **Stack information → OCID** — copy the whole value. It starts with `ocid1.ormstack.`. You need this as **`db_stack_id`** for compute. Without it, compute Plan fails.
-2. **Outputs** — you may copy `db_connection_string`, `pdb_name`, `vcn_id` (handy for Bastion). Sensitive outputs have a **Show** control in the Console; do not paste them into git.
+2. **Outputs** — you may copy `db_connection_string`, `pdb_name`, `vcn_id`. Sensitive outputs have a **Show** control in the Console; do not paste them into git.
 
 ---
 
-## 12. Configure the database for Thin Mode (required)
+## 12. Thin Mode sqlnet (automatic — no laptop hop)
 
-The apps use **Thin Mode** (pure JavaScript `oracledb`). They do **not** use Instant Client. OCI Base Database may otherwise negotiate Native Network Encryption and cloud-init will fail (**NJS-533 / ORA-12660**).
+The apps use **Thin Mode** (pure JavaScript `oracledb`). They do **not** use Instant Client. OCI Base Database would otherwise negotiate Native Network Encryption and cloud-init would fail (**NJS-533 / ORA-12660**).
 
-Run this **once** on the **DB host**. That VM has **no public IP**. SSH user on the DB host is **`opc`** (not `ubuntu`).
+**Do not** run Bastion or `ssh -A` + `curl` on the DB before compute Apply. Continue to steps 13–15. Matched DB + compute zips from the **next** Resource Manager release (not [`orm-stacks-20261012`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261012)) apply `scripts/configure-db-sqlnet-for-thin-mode.sh` from the compute **clone** over SSH to `opc` after `:1521` is up and **before** bootstrap. The DB subnet has no internet route — `curl | sudo bash` on the DB hangs.
 
-**Option A — Bastion, before compute (preferred)**
+Until that tag is published, build both zips from this repo (`./terraform/package-stacks.sh`) or use the recovery pipe below on an old zip. Upload **both** zips from the same release.
 
-1. **Identity & Security → Bastions → Create bastion** in the demo compartment, on the VCN the DB stack just created.
-2. Create a **managed SSH** session to the DB private IP (or FQDN), port **22**.
-3. Connect as **`opc`** using the **private** key from step 5, then:
+### Recovery (old zip, or failed first-boot)
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/geeksnap/oracle-sql-firewall-demo/main/scripts/configure-db-sqlnet-for-thin-mode.sh | sudo bash
-```
-
-Expect: `[SUCCESS] sqlnet.ora updated — thin-mode clients can connect on TCP :1521`
-
-**Option B — after compute exists**
-
-Skip to steps 13–14, then from your laptop (same private key):
+The DB host has **no public IP**. SSH user on the DB is **`opc`**. Pipe the clone — never `curl` GitHub from the DB (`ubuntu` cannot read `odb_sec`'s tree — use `sudo cat`):
 
 ```bash
 export COMPUTE_IP="<compute_public_ip from step 14>"
 
-ssh -A -i ~/.ssh/id_ed25519_sqlfw ubuntu@"$COMPUTE_IP" \
-  'ssh -o StrictHostKeyChecking=no opc@sqlfwdb.dbsnet.sqlfwvcn.oraclevcn.com \
-    "curl -fsSL https://raw.githubusercontent.com/geeksnap/oracle-sql-firewall-demo/main/scripts/configure-db-sqlnet-for-thin-mode.sh | sudo bash"'
+ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@"$COMPUTE_IP" \
+  'sudo cat /home/odb_sec/apps/oracle-sql-firewall-demo/scripts/configure-db-sqlnet-for-thin-mode.sh \
+   | sudo ssh -i /root/.ssh/db_bootstrap -o BatchMode=yes -o ConnectTimeout=15 \
+       -o StrictHostKeyChecking=no opc@sqlfwdb.dbsnet.sqlfwvcn.oraclevcn.com "sudo bash -s"'
 ```
 
-If you changed `project_prefix`, use the DB FQDN from DB stack output `db_host_fqdn` instead. If cloud-init already failed with NJS-533 / ORA-12660, run Option B, then re-run the install script in step 16.
+If `/root/.ssh/db_bootstrap` is missing, load the presenter key and hop with `-A`:
+
+```bash
+if [ -z "${SSH_AUTH_SOCK:-}" ]; then eval "$(ssh-agent -s)"; fi
+ssh-add ~/.ssh/id_ed25519_sqlfw   # macOS: ssh-add --apple-use-keychain ~/.ssh/id_ed25519_sqlfw
+ssh-add -l
+
+ssh -A -i ~/.ssh/id_ed25519_sqlfw ubuntu@"$COMPUTE_IP" \
+  "sudo cat /home/odb_sec/apps/oracle-sql-firewall-demo/scripts/configure-db-sqlnet-for-thin-mode.sh \
+   | ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=no \
+       opc@sqlfwdb.dbsnet.sqlfwvcn.oraclevcn.com 'sudo bash -s'"
+```
+
+Expect: `[SUCCESS] sqlnet.ora updated — thin-mode clients can connect on TCP :1521`
+
+If you changed `project_prefix`, use DB stack output `db_host_fqdn`. Then re-run the install script in step 16.
 
 ---
 
@@ -326,7 +332,7 @@ sudo systemctl is-active aegis-vault luminaforge
 # both must print: active
 ```
 
-If you used Thin Mode Option B after a failed bootstrap:
+If cloud-init failed with **NJS-533 / ORA-12660**, run the [§12 recovery pipe](#12-thin-mode-sqlnet-automatic--no-laptop-hop) (clone → `opc`, never `curl` from the DB), then re-run install:
 
 ```bash
 sudo bash -c "/usr/local/bin/sqlfw-install-apps.sh >> /var/log/sqlfw-install.log 2>&1"
@@ -373,7 +379,7 @@ Do this only after both apps load.
 | Apply **403 / NotAuthorized** | Step 4 policies |
 | VCN CIDR overlap | Change `vcn_cidr` / subnet CIDRs on a **new** DB stack, or use another compartment. Do not use VCN Wizard |
 | Apps down after Apply Succeeded | Wait 10–20 min; `sudo tail -f /var/log/sqlfw-install.log` |
-| Log shows **NJS-533 / ORA-12660** | Step 12, then re-run `sqlfw-install-apps.sh` (step 16) |
+| Log shows **NJS-533 / ORA-12660** | New matched zips apply sqlnet in cloud-init. For old zips or a failed boot, §12 recovery pipe (not curl-from-DB), then re-run `sqlfw-install-apps.sh` (step 16) |
 | Browser cannot open `:3000` / `:3001` but SSH works | DB stack `allow_ssh_cidr` + Apply; check `sudo ufw status` |
 | SSH `Permission denied` | `-i ~/.ssh/id_ed25519_sqlfw` and user **`ubuntu`**. Confirm you pasted the matching **public** key |
 

@@ -21,7 +21,7 @@ New tenancy or another compartment (login, SSH key, numbered steps): [`OCI-QUICK
 | 1 | Download **`sqlfw-db-stack.zip`** then **`sqlfw-compute-stack.zip`** | [Release `orm-stacks-20261012`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261012) |
 | 2 | **Create stack** → upload DB zip → fill schema Variables → **Plan → Apply** (~60–90 min) | Resource Manager |
 | 2b | Confirm public GitHub URL (default) or PAT for private | Before compute Apply |
-| 2c | Configure DB sqlnet for Thin Mode (Bastion **or** after compute via ProxyJump) | DB host as `opc` |
+| 2c | Thin Mode sqlnet — **automatic** in compute cloud-init (no Bastion / no laptop hop) | cloud-init |
 | 3 | Copy DB **stack OCID** → Create compute stack → set **`db_stack_id`** → Plan → Apply | Resource Manager |
 | 4 | Wait for cloud-init `[SUCCESS]` → open Outputs URLs → **Initialize default demo policy** | Browser + optional SSH |
 
@@ -40,7 +40,7 @@ The **DB stack creates the entire network** automatically. You do **not** need a
 | DB subnet (private) | `sqlfw-demo-db-subnet` | `10.40.1.0/24` |
 | Internet gateway + route tables | yes | — |
 | **Service gateway** | yes — DB subnet → Object Storage (required for Base DB) | — |
-| Security lists | yes — **1521** (compute→DB), **22/3000/3001/80** (`allow_ssh_cidr` + LB) | — |
+| Security lists | yes — **1521** and **22** from the compute subnet (Thin Mode sqlnet), **22/3000/3001/80** (`allow_ssh_cidr` + LB) | — |
 | **ufw on compute VM** | cloud-init opens **3000/3001** (+ **80** when WAF enabled) | — |
 | **Load Balancer + WAF** | **compute stack** (`enable_waf = true`, default) — `sqlfw-demo-lb`, `demo-waf-firewall` | — |
 
@@ -116,7 +116,7 @@ Set `enable_waf = false` in compute stack Variables to skip LB/WAF (direct `:300
 | **GitHub repo** | Public default URL needs no PAT. Forks/private: set `github_repo_url` (see Step 2b). Zip has **no** app code — VM clones GitHub |
 | IAM — resources | `manage database-family`, `instance-family`, `virtual-network-family`, `load-balancers`, `waf-family` in target compartment |
 | IAM — Resource Manager | `manage orm-stacks`, `manage orm-jobs` (or `manage stacks` / `manage jobs`) in compartment where stacks live |
-| IAM — Bastion (optional) | Needed only for [Step 2c Option A](#option-a--oci-bastion-before-compute-exists) before the compute VM exists |
+| IAM — Bastion | **Not required.** Compute cloud-init applies Thin Mode sqlnet; recovery uses SSH from compute, not Bastion + curl |
 | **VCN / networking** | **Nothing to create manually** — DB stack provisions VCN + subnets (see [Networking](#networking--vcn-is-included-do-not-use-vcn-wizard)) |
 
 ---
@@ -240,7 +240,7 @@ project_prefix  = "sqlfw-demo"
 | `pdb_name` | e.g. `SQLFWPDB1` |
 | `sys_password` | Sensitive — show in Console |
 | `app_db_password` | Sensitive — show in Console |
-| `vcn_id` / `compute_subnet_id` | Handy for Bastion (Step 2c) |
+| `vcn_id` / `compute_subnet_id` | Correlation / troubleshooting |
 
 **Copy Stack OCID** (Stack details → Stack information) — required for Step 3 as `db_stack_id`.
 
@@ -331,47 +331,57 @@ ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@$COMPUTE_IP \
 
 ---
 
-## Step 2c — Configure DB for thin-mode clients (required)
+## Step 2c — Thin Mode sqlnet (automatic)
 
-OCI Base Database may negotiate **Native Network Encryption (NNE)** on TCP port 1521. `node-oracledb` **Thin Mode** does not support NNE — connections fail with **NJS-533 / ORA-12660** unless the DB server accepts unencrypted TCP.
+`node-oracledb` **Thin Mode** cannot complete Native Network Encryption (`NJS-533` / `ORA-12660`). **Matched DB + compute zips from the next Resource Manager release** (not [`orm-stacks-20261012`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261012)) fix this during compute cloud-init: after the GitHub clone and `:1521` wait, the VM pipes `scripts/configure-db-sqlnet-for-thin-mode.sh` from the **clone** over SSH to `opc` on the DB host. **No Bastion. No laptop hop.** Never `curl` GitHub from the DB — that subnet has no internet route, so `curl | sudo bash` hangs.
 
-Run this **once** on the DB VM. Preferred: **before** compute bootstrap finishes (Option A). If you skip Bastion, Apply compute first, then Option B, then re-run the install script.
+Happy path: Step 2 Apply → copy `db_stack_id` → Step 3 compute Apply → wait for cloud-init `[SUCCESS]` (Step 4). Cloud-init applies sqlnet **before** `oci-bootstrap-database.mjs`.
 
-The DB host has **no public IP**.
+Until the next RM tag is published, [`DOWNLOAD.md`](DOWNLOAD.md) still points at `orm-stacks-20261012` (Plan-validation fix only). Build both zips from this repo (`./terraform/package-stacks.sh`) or wait for that tag. Upload **both** zips from the same release — a new compute zip against an old DB zip cannot plant the bootstrap key.
 
-### Option A — OCI Bastion (before compute exists)
+### Recovery (old zip, or failed first-boot)
 
-1. **Identity & Security → Bastions** → create a bastion in the demo compartment, attached to the DB stack **VCN** / suitable subnet
-2. Create a **managed SSH** or **port-forwarding** session to the DB private IP (or FQDN), port **22**
-3. SSH as `opc` (DB stack SSH key) and run:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/geeksnap/oracle-sql-firewall-demo/main/scripts/configure-db-sqlnet-for-thin-mode.sh | sudo bash
-```
-
-### Option B — ProxyJump through compute (after Step 3 Apply)
-
-From your laptop (same SSH key as DB + compute). If bootstrap already failed with NJS-533 / ORA-12660, run this, then re-run `sqlfw-install-apps.sh` on the compute VM.
+The DB host has **no public IP** and **must not** download from GitHub. Pipe the cloned script from compute (`ubuntu` cannot read `odb_sec`'s tree — use `sudo cat`):
 
 ```bash
 export COMPUTE_IP="<compute_public_ip from Step 3 outputs>"
 
-ssh -A -i ~/.ssh/id_ed25519_sqlfw ubuntu@"$COMPUTE_IP" \
-  'ssh -o StrictHostKeyChecking=no opc@sqlfwdb.dbsnet.sqlfwvcn.oraclevcn.com \
-    "curl -fsSL https://raw.githubusercontent.com/geeksnap/oracle-sql-firewall-demo/main/scripts/configure-db-sqlnet-for-thin-mode.sh | sudo bash"'
+# New zips: bootstrap private key is already on the compute VM
+ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@"$COMPUTE_IP" \
+  'sudo cat /home/odb_sec/apps/oracle-sql-firewall-demo/scripts/configure-db-sqlnet-for-thin-mode.sh \
+   | sudo ssh -i /root/.ssh/db_bootstrap -o BatchMode=yes -o ConnectTimeout=15 \
+       -o StrictHostKeyChecking=no opc@sqlfwdb.dbsnet.sqlfwvcn.oraclevcn.com "sudo bash -s"'
 ```
 
-(If you changed `project_prefix` / hostnames, use the DB host FQDN from DB stack output `db_host_fqdn` / `db_private_ip`.)
+If `/root/.ssh/db_bootstrap` is missing (older DB zip), use the presenter key with agent forwarding. Outer `ssh -i` does **not** load the inner hop — run `ssh-add` first:
 
-Or copy the script from the repo and run it manually on the DB host as `opc`.
+```bash
+if [ -z "${SSH_AUTH_SOCK:-}" ]; then eval "$(ssh-agent -s)"; fi
+ssh-add ~/.ssh/id_ed25519_sqlfw   # macOS: ssh-add --apple-use-keychain ~/.ssh/id_ed25519_sqlfw
+ssh-add -l                        # must list the key
 
-Expected output: `[SUCCESS] sqlnet.ora updated — thin-mode clients can connect on TCP :1521`
+ssh -A -i ~/.ssh/id_ed25519_sqlfw ubuntu@"$COMPUTE_IP" \
+  "sudo cat /home/odb_sec/apps/oracle-sql-firewall-demo/scripts/configure-db-sqlnet-for-thin-mode.sh \
+   | ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=no \
+       opc@sqlfwdb.dbsnet.sqlfwvcn.oraclevcn.com 'sudo bash -s'"
+```
+
+Expect: `[SUCCESS] sqlnet.ora updated — thin-mode clients can connect on TCP :1521`
+
+Then re-run install:
+
+```bash
+ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@"$COMPUTE_IP" \
+  'sudo bash -c "/usr/local/bin/sqlfw-install-apps.sh >> /var/log/sqlfw-install.log 2>&1"'
+```
+
+If you changed `project_prefix` / hostnames, use the DB host FQDN from DB stack output `db_host_fqdn`.
 
 ---
 
 ## Step 3 — Compute stack (Resource Manager)
 
-**Prerequisite:** Step 2 Apply job **Succeeded** (DB stack state must exist). Complete Step 2b (GitHub URL). Prefer Step 2c Option A before waiting on cloud-init.
+**Prerequisite:** Step 2 Apply job **Succeeded** (DB stack state must exist). Complete Step 2b (GitHub URL). Thin Mode sqlnet is applied automatically during cloud-init ([Step 2c](#step-2c--thin-mode-sqlnet-automatic)) — no Bastion or laptop hop.
 
 **Create stack** → upload `sqlfw-compute-stack.zip` (same wizard choices as Step 2; name e.g. `sqlfw-compute`).
 
@@ -443,7 +453,7 @@ curl -s -o /dev/null -w "Aegis %{http_code}\n"  http://$COMPUTE_IP:3000
 curl -s -o /dev/null -w "Lumina %{http_code}\n" http://$COMPUTE_IP:3001
 ```
 
-Expect **200** or **307**. If install log shows **NJS-533 / ORA-12660**, finish [Step 2c](#step-2c--configure-db-for-thin-mode-clients-required) then re-run `sqlfw-install-apps.sh`.
+Expect **200** or **307**. If install log shows **NJS-533 / ORA-12660**, use [Step 2c recovery](#step-2c--thin-mode-sqlnet-automatic) then re-run `sqlfw-install-apps.sh`. Do **not** `curl` GitHub from the DB.
 
 ---
 
@@ -616,7 +626,7 @@ Direct `:3001` regression: all four canonical attack payloads still work without
 
 ### 5C — Verify database schema (from compute VM)
 
-SSH as **`ubuntu`** to the compute VM. Use **`opc`** only when connecting to the **DB host** (Bastion or ProxyJump — see Step 2c).
+SSH as **`ubuntu`** to the compute VM. Use **`opc`** only when connecting to the **DB host** (recovery pipe in [Step 2c](#step-2c--thin-mode-sqlnet-automatic)).
 
 ```bash
 ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@$COMPUTE_IP
@@ -825,7 +835,7 @@ Destroy **compute stack** first, then **DB stack** (each stack → **Destroy** j
 | Demo Control ORA errors / invalid package | Bootstrap incomplete — stop apps, re-run bootstrap (5C Option 2); check `AEGIS_DEMO_CONTROL` **VALID** |
 | Bootstrap **ORA-47630** (`allow list … does not exist`) | Fresh PDB has no `AEGIS_APP` allow-list yet — bootstrap handles this idempotently. Re-run bootstrap (5C Option 2) |
 | Bootstrap **ORA-01920** (`user name … conflicts`) | Partial bootstrap already created `AEGIS_APP` / `luminaforge` — bootstrap handles this idempotently. Re-run bootstrap (5C Option 2) |
-| Bootstrap **NJS-533 / ORA-12660** (NNE negotiation failed) | Run [Step 2c](#step-2c--configure-db-for-thin-mode-clients-required) on the DB VM, then re-run `sqlfw-install-apps.sh` on compute |
+| Bootstrap **NJS-533 / ORA-12660** (NNE negotiation failed) | New matched zips apply sqlnet automatically in cloud-init. For old zips or a failed boot, pipe the clone per [Step 2c recovery](#step-2c--thin-mode-sqlnet-automatic), then re-run `sqlfw-install-apps.sh`. Do **not** `curl` GitHub from the DB |
 | Demo Control OK on LuminaForge but Aegis ORA / wrong DB | `.env` drift — compare both app `.env` files to `/root/sqlfw-bootstrap.env` (§5D) |
 | **Reinitialize default transaction data** unavailable | Re-apply grant v2.10.0+ (§5C Option 3); verify `/api/build` |
 | `git pull` **dubious ownership** on VM | Repo owned by `odb_sec` — use `sudo -u odb_sec git -C /home/odb_sec/apps/oracle-sql-firewall-demo pull origin main` before bootstrap |

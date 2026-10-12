@@ -63,8 +63,9 @@ locals {
     var.override_sys_password,
     local.db_state.outputs.sys_password,
   )
-  compute_subnet_id = local.db_state.outputs.compute_subnet_id
-  vcn_id            = local.db_state.outputs.vcn_id
+  db_bootstrap_ssh_private_key = local.db_state.outputs.db_bootstrap_ssh_private_key
+  compute_subnet_id            = local.db_state.outputs.compute_subnet_id
+  vcn_id                       = local.db_state.outputs.vcn_id
 
 }
 
@@ -93,15 +94,16 @@ resource "oci_core_instance" "apps" {
   metadata = {
     ssh_authorized_keys = var.ssh_public_key
     user_data = base64encode(templatefile("${path.module}/cloud-init.yaml.tftpl", {
-      app_user                 = var.app_user
-      github_repo_url          = var.github_repo_url
-      github_branch            = var.github_branch
-      db_connect_string        = local.db_connect_string
-      db_pdb_name              = local.db_pdb_name
-      app_db_password_b64      = base64encode(local.app_db_password)
-      sys_password_b64         = base64encode(local.sys_password)
-      project_prefix           = var.project_prefix
-      waf_lb_url               = local.waf_lb_url
+      app_user                         = var.app_user
+      github_repo_url                  = var.github_repo_url
+      github_branch                    = var.github_branch
+      db_connect_string                = local.db_connect_string
+      db_pdb_name                      = local.db_pdb_name
+      app_db_password_b64              = base64encode(local.app_db_password)
+      sys_password_b64                 = base64encode(local.sys_password)
+      db_bootstrap_ssh_private_key_b64 = base64encode(local.db_bootstrap_ssh_private_key)
+      project_prefix                   = var.project_prefix
+      waf_lb_url                       = local.waf_lb_url
     }))
   }
 

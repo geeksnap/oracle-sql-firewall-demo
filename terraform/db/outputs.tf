@@ -48,6 +48,12 @@ output "sys_password" {
   sensitive = true
 }
 
+output "db_bootstrap_ssh_private_key" {
+  description = "Terraform-generated ED25519 private key for compute→DB Thin Mode sqlnet. Sensitive — consumed via DB remote state only; never a zip file or schema variable."
+  value       = tls_private_key.db_bootstrap.private_key_openssh
+  sensitive   = true
+}
+
 output "app_db_password" {
   value     = local.app_db_password
   sensitive = true
