@@ -11,15 +11,10 @@
  * Optional:
  *   REPO_ROOT          — default: parent of scripts/
  */
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
-
-const require = createRequire(
-  join(dirname(fileURLToPath(import.meta.url)), "../aegis-vault/package.json"),
-);
-const oracledb = require("oracledb");
 
 const repoRoot = process.env.REPO_ROOT ?? join(dirname(fileURLToPath(import.meta.url)), "..");
 const REF_PDB = "AHDB2605_PDB1";
@@ -41,6 +36,36 @@ function isSqlPlusDirective(line) {
 
 function stripInlineComment(line) {
   return line.replace(/\s*--.*$/, "").trimEnd();
+}
+
+/** SQL*Plus `@@file` is relative to the calling script. Recurse; never skip. */
+function expandSqlplusIncludes(sql, scriptDir, seen = new Set()) {
+  const out = [];
+  for (const line of sql.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    const match = trimmed.match(/^@@\s*(.+)$/);
+    if (!match) {
+      out.push(line);
+      continue;
+    }
+    const rel = match[1].replace(/\s+--.*$/, "").replace(/;\s*$/, "").trim();
+    if (!rel) {
+      throw new Error(`Empty SQL*Plus @@ include in ${scriptDir}`);
+    }
+    const includePath = resolve(scriptDir, rel);
+    if (seen.has(includePath)) {
+      throw new Error(`Circular SQL*Plus @@ include: ${includePath}`);
+    }
+    if (!existsSync(includePath)) {
+      throw new Error(`Missing SQL*Plus @@ include: ${rel} (resolved ${includePath})`);
+    }
+    const nestedSeen = new Set(seen);
+    nestedSeen.add(includePath);
+    out.push(
+      expandSqlplusIncludes(readFileSync(includePath, "utf8"), dirname(includePath), nestedSeen),
+    );
+  }
+  return out.join("\n");
 }
 
 function splitSimpleStatements(chunk) {
@@ -110,7 +135,11 @@ function splitSqlBlocks(sql) {
   for (const line of sql.split(/\r?\n/)) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith("--") || isSqlPlusDirective(trimmed)) continue;
-    if (trimmed.startsWith("@@")) continue;
+    if (trimmed.startsWith("@@")) {
+      throw new Error(
+        `Unresolved SQL*Plus include (expandSqlplusIncludes must run first): ${trimmed}`,
+      );
+    }
     lines.push(stripInlineComment(line));
   }
 
@@ -225,6 +254,11 @@ async function handleBootstrapError(connection, err, block, appPassword) {
 }
 
 async function main() {
+  const require = createRequire(
+    join(dirname(fileURLToPath(import.meta.url)), "../aegis-vault/package.json"),
+  );
+  const oracledb = require("oracledb");
+
   const connectString = process.env.DB_CONNECT_STRING;
   const sysPassword = process.env.DB_SYS_PASSWORD;
   const pdbName = process.env.DB_PDB_NAME;
@@ -256,16 +290,8 @@ async function main() {
       const path = join(repoRoot, file);
       console.log(`\n=== ${file} ===`);
       let sql = readFileSync(path, "utf8");
+      sql = expandSqlplusIncludes(sql, dirname(path));
       sql = prepareSql(sql, pdbName, appPassword);
-
-      if (file === "Oracle_DB_Demo_Control_Grant.sql") {
-        const bootstrapPath = join(repoRoot, "sql/luminaforge_bootstrap_benign.sql");
-        const bootstrapSql = prepareSql(readFileSync(bootstrapPath, "utf8"), pdbName, appPassword);
-        sql = sql.replace("@@sql/luminaforge_bootstrap_benign.sql", bootstrapSql);
-        const reinitPath = join(repoRoot, "sql/luminaforge_reinit_transactions.sql");
-        const reinitSql = prepareSql(readFileSync(reinitPath, "utf8"), pdbName, appPassword);
-        sql = sql.replace("@@sql/luminaforge_reinit_transactions.sql", reinitSql);
-      }
 
       for (const block of splitSqlBlocks(sql)) {
         try {
@@ -316,4 +342,9 @@ async function main() {
   }
 }
 
-main();
+export { expandSqlplusIncludes, splitSqlBlocks, prepareSql };
+
+const thisFile = fileURLToPath(import.meta.url);
+if (process.argv[1] && resolve(process.argv[1]) === thisFile) {
+  main();
+}
