@@ -64,7 +64,7 @@ No `backend` block is required — Resource Manager manages state for each stack
 
 ### RM-1 — Obtain stack zip files
 
-**Preferred:** download `sqlfw-db-stack.zip` and `sqlfw-compute-stack.zip` from release **[`orm-stacks-20261010`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261010)** — see **[DOWNLOAD.md](DOWNLOAD.md)** for direct URLs.
+**Preferred:** download `sqlfw-db-stack.zip` and `sqlfw-compute-stack.zip` from release **[`orm-stacks-20261012`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261012)** — see **[DOWNLOAD.md](DOWNLOAD.md)** for direct URLs.
 
 **Alternate** — build from a clone:
 
@@ -660,7 +660,7 @@ cd ../db && terraform destroy
 | Apps up but HTTP **000** / timeout | `allow_ssh_cidr` + **Apply** DB stack; check `sudo ufw status` on VM (ports 3000/3001 must be ALLOW) |
 | `terraform_remote_state` error (local) | Apply DB stack first; verify `db_state_path` |
 | Compute plan fails in Resource Manager | Set **`db_stack_id`** to DB stack OCID; do not use `db_state_path` alone |
-| Compute **plan** fails: `Invalid reference in variable validation` | Bug in older compute zips (`orm-stacks-20261010` and earlier). Filling `db_stack_id` does **not** unblock — re-upload a zip built after the validation fix; do not set `db_state_path` in Resource Manager |
+| Compute **plan** fails: `Invalid reference in variable validation` | Bug in older compute zips (`orm-stacks-20261010` and earlier). Filling `db_stack_id` does **not** unblock — **Edit stack**, re-upload `sqlfw-compute-stack.zip` from [`orm-stacks-20261012`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261012), then **Plan**; do not set `db_state_path` |
 | Log permission denied re-running install | Use `sudo bash -c '.../sqlfw-install-apps.sh >> /var/log/sqlfw-install.log 2>&1'` |
 | Bootstrap **NJS-533 / ORA-12660** (NNE negotiation failed) | Run `scripts/configure-db-sqlnet-for-thin-mode.sh` on the DB host ([Quickstart Step 2c](OCI-CONSOLE-QUICKSTART.md#step-2c--configure-db-for-thin-mode-clients-required)), then re-run install/bootstrap on compute |
 | Demo Control OK on LuminaForge but Aegis ORA / wrong DB | `.env` drift — compare `aegis-vault/.env` and `luminaforge/.env` to values in `/root/sqlfw-bootstrap.env`; re-run cloud-init `.env` block or full `sqlfw-install-apps.sh` |
