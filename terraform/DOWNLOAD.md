@@ -23,6 +23,8 @@ New tenancy or another compartment (login, SSH key, numbered Console steps): **[
 
 Compute zip from tag **`orm-stacks-20261010`** (and earlier) fails Resource Manager **Plan** with `Invalid reference in variable validation` even if **`db_stack_id`** is set. Use **`orm-stacks-20261012`**: **Edit stack** → re-upload **`sqlfw-compute-stack.zip`** → **Plan**. Do not set `db_state_path` in Resource Manager. Do not recreate OCI stacks.
 
+**Thin Mode sqlnet auto-provision** (compute pipes the cloned sqlnet script to the DB; no Bastion / no `curl` from the DB) is **not** in `orm-stacks-20261012`. It needs the **next** RM tag and **both** zips from that tag. Until then, build locally with `./package-stacks.sh` or use the recovery pipe in [OCI-CONSOLE-QUICKSTART.md Step 2c](OCI-CONSOLE-QUICKSTART.md#step-2c--thin-mode-sqlnet-automatic).
+
 If no release assets exist yet, use the alternate build below, or run **Actions → Package OCI Resource Manager stacks → Run workflow**, then download the `sqlfw-orm-stacks` artifact.
 
 ## Alternate — build from a clone
@@ -41,6 +43,7 @@ Produces gitignored zips in this directory (`sqlfw-*-stack.zip`).
 1. **DB stack** — Create Stack → upload `sqlfw-db-stack.zip` → Plan → Apply (~60–90 min).
 2. Copy **DB stack OCID** (`ocid1.ormstack...`).
 3. **Compute stack** — upload `sqlfw-compute-stack.zip` → set **`db_stack_id`** → Plan → Apply.
+4. Wait for cloud-init `[SUCCESS]` — Thin Mode sqlnet is applied automatically on the next RM tag (no laptop hop).
 
 Full steps, IAM, passwords, and troubleshooting: [OCI-CONSOLE-QUICKSTART.md](OCI-CONSOLE-QUICKSTART.md) · [README.md](README.md)
 

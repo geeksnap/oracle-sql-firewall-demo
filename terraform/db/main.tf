@@ -96,6 +96,16 @@ resource "oci_core_security_list" "db_sl" {
 
   ingress_security_rules {
     protocol    = "6"
+    description = "SSH from compute subnet (Thin Mode sqlnet provision)"
+    source      = var.compute_subnet_cidr
+    tcp_options {
+      min = 22
+      max = 22
+    }
+  }
+
+  ingress_security_rules {
+    protocol    = "6"
     description = "SSH (optional admin)"
     source      = var.allow_ssh_cidr
     tcp_options {
@@ -209,6 +219,12 @@ resource "oci_core_subnet" "compute" {
   security_list_ids          = [oci_core_security_list.compute_sl.id]
 }
 
+# ED25519 bootstrap key for compute→DB sqlnet (Thin Mode). oci_database_db_system
+# cannot write sqlnet.ora; compute cloud-init pipes the cloned script over SSH.
+resource "tls_private_key" "db_bootstrap" {
+  algorithm = "ED25519"
+}
+
 resource "oci_database_db_system" "sqlfw" {
   availability_domain = data.oci_identity_availability_domains.ads.availability_domains[0].name
   compartment_id      = var.compartment_id
@@ -225,7 +241,10 @@ resource "oci_database_db_system" "sqlfw" {
   license_model   = var.license_model
   node_count      = 1
   shape           = var.db_shape
-  ssh_public_keys = [var.ssh_public_key]
+  ssh_public_keys = [
+    var.ssh_public_key,
+    tls_private_key.db_bootstrap.public_key_openssh,
+  ]
 
   db_home {
     db_version = var.db_home_version

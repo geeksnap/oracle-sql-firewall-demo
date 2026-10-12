@@ -11,7 +11,7 @@ Two **correlated** Terraform stacks provision the full demo on OCI:
 
 Compute reads DB outputs from `../db/terraform.tfstate`, bootstraps the schema (`scripts/oci-bootstrap-database.mjs`), and starts both apps via systemd.
 
-**Compute bootstrap** (cloud-init) installs Node.js 22, clones the repo, builds both apps, opens **ufw** ports 3000/3001, and starts them via systemd. Apps connect to Oracle PDB using **node-oracledb Thin Mode** — no Oracle Client software required on the VM.
+**Compute bootstrap** (cloud-init) installs Node.js 22, clones the repo, applies Thin Mode sqlnet on the DB from the clone (no GitHub on the DB), builds both apps, opens **ufw** ports 3000/3001, and starts them via systemd. Apps connect to Oracle PDB using **node-oracledb Thin Mode** — no Oracle Client software required on the VM.
 
 ```text
 Presenter browser
@@ -130,7 +130,7 @@ Each zip contains that stack’s `.tf` files and `schema.yaml` (no real `terrafo
 5. SSH to compute (if needed): `ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@<compute_public_ip>`
 6. Tail bootstrap: `sudo tail -f /var/log/sqlfw-install.log` until `[SUCCESS] Apps + DB schema ready`
 
-Cloud-init installs Node.js 22 (via apt), clones GitHub, builds apps, bootstraps DB, starts systemd, and (when `enable_waf = true`) configures nginx **:80 → WAF LB** (~10–20 min). Apps use **node-oracledb Thin Mode** — no Oracle Client required.
+Cloud-init installs Node.js 22 (via apt), clones GitHub, applies Thin Mode sqlnet from the clone, builds apps, bootstraps DB, starts systemd, and (when `enable_waf = true`) configures nginx **:80 → WAF LB** (~10–20 min). Apps use **node-oracledb Thin Mode** — no Oracle Client required.
 
 **Re-run bootstrap on existing VM:**
 
@@ -500,12 +500,13 @@ On first boot, `/usr/local/bin/sqlfw-install-apps.sh`:
 2. Installs Node.js 22 via NodeSource + `apt`
 3. Clones `github_repo_url` / `github_branch`
 4. Waits up to **30 min** for DB listener on port **1521**
-5. Runs `npm ci` + `npm run build` in `aegis-vault` and `luminaforge`
-6. Writes `.env` files with DB connection + passwords from DB stack
-7. Runs `node scripts/oci-bootstrap-database.mjs` (SYS → schema + SQL Firewall grants) — **Thin Mode**, no Instant Client needed
-8. Enables and starts `aegis-vault.service` and `luminaforge.service`
-9. Opens **ufw** ports 3000/3001 (+ 80 when WAF enabled)
-10. When `enable_waf = true`: installs nginx + configures compute **:80** → WAF load balancer redirect
+5. Pipes cloned `scripts/configure-db-sqlnet-for-thin-mode.sh` to `opc` on the DB host (**Thin Mode**; never `curl` GitHub from the DB)
+6. Runs `npm ci` + `npm run build` in `aegis-vault` and `luminaforge`
+7. Writes `.env` files with DB connection + passwords from DB stack
+8. Runs `node scripts/oci-bootstrap-database.mjs` (SYS → schema + SQL Firewall grants) — **Thin Mode**, no Instant Client needed
+9. Enables and starts `aegis-vault.service` and `luminaforge.service`
+10. Opens **ufw** ports 3000/3001 (+ 80 when WAF enabled)
+11. When `enable_waf = true`: installs nginx + configures compute **:80** → WAF load balancer redirect
 
 **Compute Terraform also provisions** (default `enable_waf = true`):
 
@@ -662,7 +663,7 @@ cd ../db && terraform destroy
 | Compute plan fails in Resource Manager | Set **`db_stack_id`** to DB stack OCID; do not use `db_state_path` alone |
 | Compute **plan** fails: `Invalid reference in variable validation` | Bug in older compute zips (`orm-stacks-20261010` and earlier). Filling `db_stack_id` does **not** unblock — **Edit stack**, re-upload `sqlfw-compute-stack.zip` from [`orm-stacks-20261012`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261012), then **Plan**; do not set `db_state_path` |
 | Log permission denied re-running install | Use `sudo bash -c '.../sqlfw-install-apps.sh >> /var/log/sqlfw-install.log 2>&1'` |
-| Bootstrap **NJS-533 / ORA-12660** (NNE negotiation failed) | Run `scripts/configure-db-sqlnet-for-thin-mode.sh` on the DB host ([Quickstart Step 2c](OCI-CONSOLE-QUICKSTART.md#step-2c--configure-db-for-thin-mode-clients-required)), then re-run install/bootstrap on compute |
+| Bootstrap **NJS-533 / ORA-12660** (NNE negotiation failed) | New matched zips apply sqlnet automatically in cloud-init. For old zips or a failed boot, pipe the clone per [Quickstart Step 2c recovery](OCI-CONSOLE-QUICKSTART.md#step-2c--thin-mode-sqlnet-automatic), then re-run install/bootstrap. Do **not** `curl` GitHub from the DB |
 | Bootstrap **PLS-00201** `LUMINAFORGE.AEGIS_DEMO_SEED` | Bootstrap used to skip `@@sql/luminaforge_demo_seed.sql`. Do **not** Destroy the DB. Load the package then re-run bootstrap: `BOOTSTRAP_ONLY=sql/luminaforge_demo_seed.sql` with env from `/root/sqlfw-bootstrap.env`, then the full bootstrap command below. After this fix is on `main`, `git pull` and re-run bootstrap. |
 | Demo Control OK on LuminaForge but Aegis ORA / wrong DB | `.env` drift — compare `aegis-vault/.env` and `luminaforge/.env` to values in `/root/sqlfw-bootstrap.env`; re-run cloud-init `.env` block or full `sqlfw-install-apps.sh` |
 | Demo Control **reinit** button unavailable | Re-apply grant package v2.10.0+: `BOOTSTRAP_ONLY=Oracle_DB_Demo_Control_Grant.sql` with bootstrap env (see Quickstart §5C Option 2) |
