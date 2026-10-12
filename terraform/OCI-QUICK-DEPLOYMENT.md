@@ -272,7 +272,7 @@ If you changed `project_prefix`, use the DB FQDN from DB stack output `db_host_f
 
 Leave override password / connection fields **blank**. Compute reads those from the DB stack.
 
-Do **not** set `db_state_path` — Resource Manager has no local `terraform.tfstate`. **`db_stack_id` is required.**
+Do **not** set `db_state_path` — Resource Manager has no local `terraform.tfstate`. **`db_stack_id` is required.** Resource Manager Plan uses only `db_stack_id`; a compute zip that validates `db_stack_id` with `fileexists(var.db_state_path)` will fail Plan even after you paste the OCID (re-upload a compute zip that includes that fix).
 
 ---
 
@@ -368,6 +368,7 @@ Do this only after both apps load.
 | Symptom | What to do |
 |---------|------------|
 | Compute **Plan** fails on remote state / empty `db_stack_id` | Paste the DB stack OCID (`ocid1.ormstack.…`). DB Apply must already be **Succeeded** |
+| Compute **Plan** fails: `Invalid reference in variable validation` (`fileexists(var.db_state_path)`) | Bug in compute zip `orm-stacks-20261010` and earlier. Filling `db_stack_id` does **not** unblock. Edit the compute stack and re-upload a zip built from this repo after the validation fix (`./package-stacks.sh`). Do not set `db_state_path` in Resource Manager |
 | `db_home_version` invalid | Repeat step 7; use the exact `26.x` string from **this** region |
 | Apply **403 / NotAuthorized** | Step 4 policies |
 | VCN CIDR overlap | Change `vcn_cidr` / subnet CIDRs on a **new** DB stack, or use another compartment. Do not use VCN Wizard |

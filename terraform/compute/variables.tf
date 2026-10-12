@@ -22,14 +22,10 @@ variable "db_stack_id" {
   type        = string
   default     = null
 
-  validation {
-    condition = (
-      try(trimspace(var.db_stack_id) != "", false) ||
-      fileexists(var.db_state_path)
-    )
-    error_message = "Set db_stack_id to your DB stack OCID (ocid1.ormstack...) for OCI Console deployment. For local CLI, apply the DB stack first so db_state_path exists."
-  }
-
+  # Terraform 1.5+ (Resource Manager included): a variable validation condition
+  # may only refer to this variable. Do not use var.db_state_path / fileexists here —
+  # that is a config-load error and fails Plan even when db_stack_id is set.
+  # Local-CLI tfstate presence is enforced on data.terraform_remote_state.db_local.
   validation {
     condition     = var.db_stack_id == null || can(regex("^ocid1\\.ormstack\\.", var.db_stack_id))
     error_message = "db_stack_id must be a Resource Manager stack OCID (starts with ocid1.ormstack.). Copy from your DB stack in the Console."
