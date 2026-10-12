@@ -64,7 +64,7 @@ No `backend` block is required — Resource Manager manages state for each stack
 
 ### RM-1 — Obtain stack zip files
 
-**Preferred:** download `sqlfw-db-stack.zip` and `sqlfw-compute-stack.zip` from release **[`orm-stacks-20261012`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261012)** — see **[DOWNLOAD.md](DOWNLOAD.md)** for direct URLs.
+**Preferred:** download `sqlfw-db-stack.zip` and `sqlfw-compute-stack.zip` from release **[`orm-stacks-20261012-2`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261012-2)** — see **[DOWNLOAD.md](DOWNLOAD.md)** for direct URLs.
 
 **Alternate** — build from a clone:
 
@@ -661,7 +661,7 @@ cd ../db && terraform destroy
 | Apps up but HTTP **000** / timeout | `allow_ssh_cidr` + **Apply** DB stack; check `sudo ufw status` on VM (ports 3000/3001 must be ALLOW) |
 | `terraform_remote_state` error (local) | Apply DB stack first; verify `db_state_path` |
 | Compute plan fails in Resource Manager | Set **`db_stack_id`** to DB stack OCID; do not use `db_state_path` alone |
-| Compute **plan** fails: `Invalid reference in variable validation` | Bug in older compute zips (`orm-stacks-20261010` and earlier). Filling `db_stack_id` does **not** unblock — **Edit stack**, re-upload `sqlfw-compute-stack.zip` from [`orm-stacks-20261012`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261012), then **Plan**; do not set `db_state_path` |
+| Compute **plan** fails: `Invalid reference in variable validation` | Bug in older compute zips (`orm-stacks-20261010` and earlier). Filling `db_stack_id` does **not** unblock — **Edit stack**, re-upload `sqlfw-compute-stack.zip` from [`orm-stacks-20261012-2`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261012-2), then **Plan**; do not set `db_state_path` |
 | Log permission denied re-running install | Use `sudo bash -c '.../sqlfw-install-apps.sh >> /var/log/sqlfw-install.log 2>&1'` |
 | Bootstrap **NJS-533 / ORA-12660** (NNE negotiation failed) | New matched zips apply sqlnet automatically in cloud-init. For old zips or a failed boot, pipe the clone per [Quickstart Step 2c recovery](OCI-CONSOLE-QUICKSTART.md#step-2c--thin-mode-sqlnet-automatic), then re-run install/bootstrap. Do **not** `curl` GitHub from the DB |
 | Bootstrap **PLS-00201** `LUMINAFORGE.AEGIS_DEMO_SEED` | Bootstrap used to skip `@@sql/luminaforge_demo_seed.sql`. Do **not** Destroy the DB. Load the package then re-run bootstrap: `BOOTSTRAP_ONLY=sql/luminaforge_demo_seed.sql` with env from `/root/sqlfw-bootstrap.env`, then the full bootstrap command below. After this fix is on `main`, `git pull` and re-run bootstrap. |

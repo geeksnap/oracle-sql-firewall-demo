@@ -18,7 +18,7 @@ New tenancy or another compartment (login, SSH key, numbered steps): [`OCI-QUICK
 | Order | What | Where |
 |------:|------|--------|
 | 0 | Prep: region, compartment OCID, SSH **public** key, `db_home_version` (26.x), your `/32` | Console + laptop (no Terraform CLI) |
-| 1 | Download **`sqlfw-db-stack.zip`** then **`sqlfw-compute-stack.zip`** | [Release `orm-stacks-20261012`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261012) |
+| 1 | Download **`sqlfw-db-stack.zip`** then **`sqlfw-compute-stack.zip`** | [Release `orm-stacks-20261012-2`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261012-2) |
 | 2 | **Create stack** → upload DB zip → fill schema Variables → **Plan → Apply** (~60–90 min) | Resource Manager |
 | 2b | Confirm public GitHub URL (default) or PAT for private | Before compute Apply |
 | 2c | Thin Mode sqlnet — **automatic** in compute cloud-init (no Bastion / no laptop hop) | cloud-init |
@@ -168,13 +168,13 @@ Use the **highest** `26.x` string for **`db_home_version`**. Empty filter with a
 
 **Preferred — download published Release assets** (no local Terraform / packaging):
 
-1. Open release **[`orm-stacks-20261012`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261012)** (or [Latest](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/latest) when it points at ORM stack assets).
+1. Open release **[`orm-stacks-20261012-2`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261012-2)** (or [Latest](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/latest) when it points at ORM stack assets).
 2. Download both zips (also listed in [DOWNLOAD.md](DOWNLOAD.md)):
 
 | Zip | Order | Direct URL |
 |-----|-------|------------|
-| [`sqlfw-db-stack.zip`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/download/orm-stacks-20261012/sqlfw-db-stack.zip) | Upload **first** | DB + VCN |
-| [`sqlfw-compute-stack.zip`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/download/orm-stacks-20261012/sqlfw-compute-stack.zip) | Upload **second** | Compute + WAF/LB |
+| [`sqlfw-db-stack.zip`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/download/orm-stacks-20261012-2/sqlfw-db-stack.zip) | Upload **first** | DB + VCN |
+| [`sqlfw-compute-stack.zip`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/download/orm-stacks-20261012-2/sqlfw-compute-stack.zip) | Upload **second** | Compute + WAF/LB |
 
 Each zip has `.tf` files + `schema.yaml` at the **root** (no `.terraform/`, no real `terraform.tfvars`, no secrets). Schema drives the Console **Configure variables** wizard (grouped Required / Passwords / Optional).
 
@@ -333,11 +333,11 @@ ssh -i ~/.ssh/id_ed25519_sqlfw ubuntu@$COMPUTE_IP \
 
 ## Step 2c — Thin Mode sqlnet (automatic)
 
-`node-oracledb` **Thin Mode** cannot complete Native Network Encryption (`NJS-533` / `ORA-12660`). **Matched DB + compute zips from the next Resource Manager release** (not [`orm-stacks-20261012`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261012)) fix this during compute cloud-init: after the GitHub clone and `:1521` wait, the VM pipes `scripts/configure-db-sqlnet-for-thin-mode.sh` from the **clone** over SSH to `opc` on the DB host. **No Bastion. No laptop hop.** Never `curl` GitHub from the DB — that subnet has no internet route, so `curl | sudo bash` hangs.
+`node-oracledb` **Thin Mode** cannot complete Native Network Encryption (`NJS-533` / `ORA-12660`). **Matched DB + compute zips from [`orm-stacks-20261012-2`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261012-2)** (not [`orm-stacks-20261012`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261012)) fix this during compute cloud-init: after the GitHub clone and `:1521` wait, the VM pipes `scripts/configure-db-sqlnet-for-thin-mode.sh` from the **clone** over SSH to `opc` on the DB host. **No Bastion. No laptop hop.** Never `curl` GitHub from the DB — that subnet has no internet route, so `curl | sudo bash` hangs.
 
 Happy path: Step 2 Apply → copy `db_stack_id` → Step 3 compute Apply → wait for cloud-init `[SUCCESS]` (Step 4). Cloud-init applies sqlnet **before** `oci-bootstrap-database.mjs`.
 
-Until the next RM tag is published, [`DOWNLOAD.md`](DOWNLOAD.md) still points at `orm-stacks-20261012` (Plan-validation fix only). Build both zips from this repo (`./terraform/package-stacks.sh`) or wait for that tag. Upload **both** zips from the same release — a new compute zip against an old DB zip cannot plant the bootstrap key.
+[`DOWNLOAD.md`](DOWNLOAD.md) points at **`orm-stacks-20261012-2`**. Upload **both** zips from that tag — a new compute zip against an old DB zip cannot plant the bootstrap key. Prior tag `orm-stacks-20261012` is Plan-validation only.
 
 ### Recovery (old zip, or failed first-boot)
 
@@ -825,7 +825,7 @@ Destroy **compute stack** first, then **DB stack** (each stack → **Destroy** j
 | Apply OK but apps down | Wait 10–20 min; `sudo tail -f /var/log/sqlfw-install.log` |
 | `Permission denied` on `/var/log/sqlfw-install.log` | Use `sudo bash -c '.../sqlfw-install-apps.sh >> /var/log/sqlfw-install.log 2>&1'` — not `sudo cmd >> log` |
 | Compute **plan** fails on remote state | Set **`db_stack_id`** to DB stack OCID (`ocid1.ormstack...`); DB stack Apply must **Succeeded** first |
-| Compute **plan** fails: `Invalid reference in variable validation` (`fileexists(var.db_state_path)`) | Filling `db_stack_id` does **not** fix it. **Edit stack** → re-upload **`sqlfw-compute-stack.zip`** from [`orm-stacks-20261012`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261012) → **Plan**. Do not set `db_state_path` |
+| Compute **plan** fails: `Invalid reference in variable validation` (`fileexists(var.db_state_path)`) | Filling `db_stack_id` does **not** fix it. **Edit stack** → re-upload **`sqlfw-compute-stack.zip`** from [`orm-stacks-20261012-2`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261012-2) → **Plan**. Do not set `db_state_path` |
 | `db_home_version` invalid / 400 InvalidParameter | Re-run [Check 26ai DB home version](#check-26ai-db-home-version-before-db-stack): list all versions first, then filter with `jq` for `26.x`. Empty = wrong region, unset `COMPARTMENT_ID`, or 26ai not in region |
 | Password error | Set compliant `sys_password` / `app_db_password` in Variables (no `sys` / `Oracle` substrings); or clear vars to use demo-only Terraform defaults |
 | Object Storage / subnet error | Upload latest zip (service gateway + security list egress); re-Apply DB stack |
