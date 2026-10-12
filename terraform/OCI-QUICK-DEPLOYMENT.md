@@ -8,7 +8,7 @@ Deploy the SQL Firewall demo into **a new OCI compartment** from the OCI Console
 | **Compute OS** | Ubuntu 24.04 (created for you) |
 | **SSH user** | **`ubuntu`** on the apps VM |
 | **Database apps** | **node-oracledb Thin Mode** — do **not** install Oracle Instant Client |
-| **Zips** | GitHub release [`orm-stacks-20261010`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261010) |
+| **Zips** | GitHub release [`orm-stacks-20261012`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261012) |
 
 ```text
 Your browser
@@ -158,12 +158,12 @@ If there is no `26.x` option, pick another region (step 2) and start again. Do n
 
 ## 8. Download both stack zips
 
-Open release **[`orm-stacks-20261010`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261010)** and download **both** files:
+Open release **[`orm-stacks-20261012`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261012)** and download **both** files:
 
 | Order | File | Direct URL |
 |------:|------|------------|
-| **1st** | `sqlfw-db-stack.zip` | https://github.com/geeksnap/oracle-sql-firewall-demo/releases/download/orm-stacks-20261010/sqlfw-db-stack.zip |
-| **2nd** | `sqlfw-compute-stack.zip` | https://github.com/geeksnap/oracle-sql-firewall-demo/releases/download/orm-stacks-20261010/sqlfw-compute-stack.zip |
+| **1st** | `sqlfw-db-stack.zip` | https://github.com/geeksnap/oracle-sql-firewall-demo/releases/download/orm-stacks-20261012/sqlfw-db-stack.zip |
+| **2nd** | `sqlfw-compute-stack.zip` | https://github.com/geeksnap/oracle-sql-firewall-demo/releases/download/orm-stacks-20261012/sqlfw-compute-stack.zip |
 
 Do **not** reverse the order later. Each zip has Terraform files and `schema.yaml` at the **root**. They contain **no** passwords, **no** private keys, **no** real `terraform.tfvars`.
 
@@ -272,7 +272,7 @@ If you changed `project_prefix`, use the DB FQDN from DB stack output `db_host_f
 
 Leave override password / connection fields **blank**. Compute reads those from the DB stack.
 
-Do **not** set `db_state_path` — Resource Manager has no local `terraform.tfstate`. **`db_stack_id` is required.** Resource Manager Plan uses only `db_stack_id`; a compute zip that validates `db_stack_id` with `fileexists(var.db_state_path)` will fail Plan even after you paste the OCID (re-upload a compute zip that includes that fix).
+Do **not** set `db_state_path` — Resource Manager has no local `terraform.tfstate`. **`db_stack_id` is required.** Resource Manager Plan uses only `db_stack_id`. If Plan fails with `Invalid reference in variable validation`, **Edit stack** and re-upload **`sqlfw-compute-stack.zip`** from [`orm-stacks-20261012`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261012) (filling `db_stack_id` does not fix the old zip).
 
 ---
 
@@ -368,7 +368,7 @@ Do this only after both apps load.
 | Symptom | What to do |
 |---------|------------|
 | Compute **Plan** fails on remote state / empty `db_stack_id` | Paste the DB stack OCID (`ocid1.ormstack.…`). DB Apply must already be **Succeeded** |
-| Compute **Plan** fails: `Invalid reference in variable validation` (`fileexists(var.db_state_path)`) | Bug in compute zip `orm-stacks-20261010` and earlier. Filling `db_stack_id` does **not** unblock. Edit the compute stack and re-upload a zip built from this repo after the validation fix (`./package-stacks.sh`). Do not set `db_state_path` in Resource Manager |
+| Compute **Plan** fails: `Invalid reference in variable validation` (`fileexists(var.db_state_path)`) | Bug in compute zip `orm-stacks-20261010` and earlier. Filling `db_stack_id` does **not** unblock. **Edit stack** → re-upload **`sqlfw-compute-stack.zip`** from [`orm-stacks-20261012`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261012) → **Plan**. Do not set `db_state_path`. Do not recreate stacks |
 | `db_home_version` invalid | Repeat step 7; use the exact `26.x` string from **this** region |
 | Apply **403 / NotAuthorized** | Step 4 policies |
 | VCN CIDR overlap | Change `vcn_cidr` / subnet CIDRs on a **new** DB stack, or use another compartment. Do not use VCN Wizard |
