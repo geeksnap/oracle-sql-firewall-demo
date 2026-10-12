@@ -8,7 +8,7 @@ Deploy the SQL Firewall demo into **a new OCI compartment** from the OCI Console
 | **Compute OS** | Ubuntu 24.04 (created for you) |
 | **SSH user** | **`ubuntu`** on the apps VM |
 | **Database apps** | **node-oracledb Thin Mode** — do **not** install Oracle Instant Client |
-| **Zips** | GitHub release [`orm-stacks-20261012`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261012) |
+| **Zips** | GitHub release [`orm-stacks-20261012-2`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261012-2) |
 
 ```text
 Your browser
@@ -158,12 +158,12 @@ If there is no `26.x` option, pick another region (step 2) and start again. Do n
 
 ## 8. Download both stack zips
 
-Open release **[`orm-stacks-20261012`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261012)** and download **both** files:
+Open release **[`orm-stacks-20261012-2`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261012-2)** and download **both** files:
 
 | Order | File | Direct URL |
 |------:|------|------------|
-| **1st** | `sqlfw-db-stack.zip` | https://github.com/geeksnap/oracle-sql-firewall-demo/releases/download/orm-stacks-20261012/sqlfw-db-stack.zip |
-| **2nd** | `sqlfw-compute-stack.zip` | https://github.com/geeksnap/oracle-sql-firewall-demo/releases/download/orm-stacks-20261012/sqlfw-compute-stack.zip |
+| **1st** | `sqlfw-db-stack.zip` | https://github.com/geeksnap/oracle-sql-firewall-demo/releases/download/orm-stacks-20261012-2/sqlfw-db-stack.zip |
+| **2nd** | `sqlfw-compute-stack.zip` | https://github.com/geeksnap/oracle-sql-firewall-demo/releases/download/orm-stacks-20261012-2/sqlfw-compute-stack.zip |
 
 Do **not** reverse the order later. Each zip has Terraform files and `schema.yaml` at the **root**. They contain **no** passwords, **no** private keys, **no** real `terraform.tfvars`.
 
@@ -220,9 +220,9 @@ On the DB stack:
 
 The apps use **Thin Mode** (pure JavaScript `oracledb`). They do **not** use Instant Client. OCI Base Database would otherwise negotiate Native Network Encryption and cloud-init would fail (**NJS-533 / ORA-12660**).
 
-**Do not** run Bastion or `ssh -A` + `curl` on the DB before compute Apply. Continue to steps 13–15. Matched DB + compute zips from the **next** Resource Manager release (not [`orm-stacks-20261012`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261012)) apply `scripts/configure-db-sqlnet-for-thin-mode.sh` from the compute **clone** over SSH to `opc` after `:1521` is up and **before** bootstrap. The DB subnet has no internet route — `curl | sudo bash` on the DB hangs.
+**Do not** run Bastion or `ssh -A` + `curl` on the DB before compute Apply. Continue to steps 13–15. Matched DB + compute zips from [`orm-stacks-20261012-2`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261012-2) (not [`orm-stacks-20261012`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261012)) apply `scripts/configure-db-sqlnet-for-thin-mode.sh` from the compute **clone** over SSH to `opc` after `:1521` is up and **before** bootstrap. The DB subnet has no internet route — `curl | sudo bash` on the DB hangs.
 
-Until that tag is published, build both zips from this repo (`./terraform/package-stacks.sh`) or use the recovery pipe below on an old zip. Upload **both** zips from the same release.
+Upload **both** zips from `orm-stacks-20261012-2`. Use the recovery pipe below only on an old zip or a failed first-boot.
 
 ### Recovery (old zip, or failed first-boot)
 
@@ -278,7 +278,7 @@ If you changed `project_prefix`, use DB stack output `db_host_fqdn`. Then re-run
 
 Leave override password / connection fields **blank**. Compute reads those from the DB stack.
 
-Do **not** set `db_state_path` — Resource Manager has no local `terraform.tfstate`. **`db_stack_id` is required.** Resource Manager Plan uses only `db_stack_id`. If Plan fails with `Invalid reference in variable validation`, **Edit stack** and re-upload **`sqlfw-compute-stack.zip`** from [`orm-stacks-20261012`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261012) (filling `db_stack_id` does not fix the old zip).
+Do **not** set `db_state_path` — Resource Manager has no local `terraform.tfstate`. **`db_stack_id` is required.** Resource Manager Plan uses only `db_stack_id`. If Plan fails with `Invalid reference in variable validation`, **Edit stack** and re-upload **`sqlfw-compute-stack.zip`** from [`orm-stacks-20261012-2`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261012-2) (filling `db_stack_id` does not fix the old zip).
 
 ---
 
@@ -374,7 +374,7 @@ Do this only after both apps load.
 | Symptom | What to do |
 |---------|------------|
 | Compute **Plan** fails on remote state / empty `db_stack_id` | Paste the DB stack OCID (`ocid1.ormstack.…`). DB Apply must already be **Succeeded** |
-| Compute **Plan** fails: `Invalid reference in variable validation` (`fileexists(var.db_state_path)`) | Bug in compute zip `orm-stacks-20261010` and earlier. Filling `db_stack_id` does **not** unblock. **Edit stack** → re-upload **`sqlfw-compute-stack.zip`** from [`orm-stacks-20261012`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261012) → **Plan**. Do not set `db_state_path`. Do not recreate stacks |
+| Compute **Plan** fails: `Invalid reference in variable validation` (`fileexists(var.db_state_path)`) | Bug in compute zip `orm-stacks-20261010` and earlier. Filling `db_stack_id` does **not** unblock. **Edit stack** → re-upload **`sqlfw-compute-stack.zip`** from [`orm-stacks-20261012-2`](https://github.com/geeksnap/oracle-sql-firewall-demo/releases/tag/orm-stacks-20261012-2) → **Plan**. Do not set `db_state_path`. Do not recreate stacks |
 | `db_home_version` invalid | Repeat step 7; use the exact `26.x` string from **this** region |
 | Apply **403 / NotAuthorized** | Step 4 policies |
 | VCN CIDR overlap | Change `vcn_cidr` / subnet CIDRs on a **new** DB stack, or use another compartment. Do not use VCN Wizard |
