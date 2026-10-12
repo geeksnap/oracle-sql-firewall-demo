@@ -18,11 +18,19 @@ data "terraform_remote_state" "db_rm" {
 }
 
 # Local CLI: read DB stack state file from laptop filesystem.
+# Skipped in Resource Manager when db_stack_id is set (no local tfstate on the job runner).
 data "terraform_remote_state" "db_local" {
   count   = local.use_rm_db_state ? 0 : 1
   backend = "local"
   config = {
     path = var.db_state_path
+  }
+
+  lifecycle {
+    precondition {
+      condition     = fileexists(var.db_state_path)
+      error_message = "Set db_stack_id to your DB stack OCID (ocid1.ormstack...) for OCI Console deployment. For local CLI, apply the DB stack first so db_state_path exists."
+    }
   }
 }
 

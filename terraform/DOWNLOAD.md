@@ -21,6 +21,8 @@ Published stack zips for tag **[`orm-stacks-20261010`](https://github.com/geeksn
 
 New tenancy or another compartment (login, SSH key, numbered Console steps): **[OCI-QUICK-DEPLOYMENT.md](OCI-QUICK-DEPLOYMENT.md)**.
 
+Compute zip from tag **`orm-stacks-20261010`** fails Resource Manager **Plan** with `Invalid reference in variable validation` even if **`db_stack_id`** is set. Rebuild with `./package-stacks.sh` from a commit that includes the `db_stack_id` validation fix, then **Edit stack** and re-upload **`sqlfw-compute-stack.zip`**. Do not set `db_state_path` in Resource Manager.
+
 If no release assets exist yet, use the alternate build below, or run **Actions → Package OCI Resource Manager stacks → Run workflow**, then download the `sqlfw-orm-stacks` artifact.
 
 ## Alternate — build from a clone

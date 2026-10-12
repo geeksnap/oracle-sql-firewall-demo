@@ -815,6 +815,7 @@ Destroy **compute stack** first, then **DB stack** (each stack → **Destroy** j
 | Apply OK but apps down | Wait 10–20 min; `sudo tail -f /var/log/sqlfw-install.log` |
 | `Permission denied` on `/var/log/sqlfw-install.log` | Use `sudo bash -c '.../sqlfw-install-apps.sh >> /var/log/sqlfw-install.log 2>&1'` — not `sudo cmd >> log` |
 | Compute **plan** fails on remote state | Set **`db_stack_id`** to DB stack OCID (`ocid1.ormstack...`); DB stack Apply must **Succeeded** first |
+| Compute **plan** fails: `Invalid reference in variable validation` (`fileexists(var.db_state_path)`) | Filling `db_stack_id` does **not** fix it. Re-upload a compute zip built after the `db_stack_id` validation fix; do not set `db_state_path` in Resource Manager |
 | `db_home_version` invalid / 400 InvalidParameter | Re-run [Check 26ai DB home version](#check-26ai-db-home-version-before-db-stack): list all versions first, then filter with `jq` for `26.x`. Empty = wrong region, unset `COMPARTMENT_ID`, or 26ai not in region |
 | Password error | Set compliant `sys_password` / `app_db_password` in Variables (no `sys` / `Oracle` substrings); or clear vars to use demo-only Terraform defaults |
 | Object Storage / subnet error | Upload latest zip (service gateway + security list egress); re-Apply DB stack |

@@ -660,6 +660,7 @@ cd ../db && terraform destroy
 | Apps up but HTTP **000** / timeout | `allow_ssh_cidr` + **Apply** DB stack; check `sudo ufw status` on VM (ports 3000/3001 must be ALLOW) |
 | `terraform_remote_state` error (local) | Apply DB stack first; verify `db_state_path` |
 | Compute plan fails in Resource Manager | Set **`db_stack_id`** to DB stack OCID; do not use `db_state_path` alone |
+| Compute **plan** fails: `Invalid reference in variable validation` | Bug in older compute zips (`orm-stacks-20261010` and earlier). Filling `db_stack_id` does **not** unblock — re-upload a zip built after the validation fix; do not set `db_state_path` in Resource Manager |
 | Log permission denied re-running install | Use `sudo bash -c '.../sqlfw-install-apps.sh >> /var/log/sqlfw-install.log 2>&1'` |
 | Bootstrap **NJS-533 / ORA-12660** (NNE negotiation failed) | Run `scripts/configure-db-sqlnet-for-thin-mode.sh` on the DB host ([Quickstart Step 2c](OCI-CONSOLE-QUICKSTART.md#step-2c--configure-db-for-thin-mode-clients-required)), then re-run install/bootstrap on compute |
 | Demo Control OK on LuminaForge but Aegis ORA / wrong DB | `.env` drift — compare `aegis-vault/.env` and `luminaforge/.env` to values in `/root/sqlfw-bootstrap.env`; re-run cloud-init `.env` block or full `sqlfw-install-apps.sh` |
